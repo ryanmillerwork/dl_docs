@@ -1,0 +1,496 @@
+[
+  {
+    "command": "dg_addExistingList",
+    "category": "Manipulation",
+    "synopsis": "dg_addExistingList dyngroup name [newname]",
+    "brief": "Appends an existing list to a dynGroup. The existing list is removed from the hash table and transferred to the new group.",
+    "inputs": {
+      "type": "DynGroup",
+      "length": "any",
+      "element_types": ["string", "string", "string"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": false
+    },
+    "errors": [
+      "TCL_ERROR if dyngroup or list not found, or if newname already exists in dyngroup."
+    ],
+    "example": "dg_addExistingList myGroup myList myNewListInGroup",
+    "see_also": ["dg_copyExistingList", "dg_addNewList", "dg_remove"]
+  },
+  {
+    "command": "dg_addNewList",
+    "category": "Manipulation",
+    "synopsis": "dg_addNewList dyngroup name [[datatype] [size]]",
+    "brief": "Appends a new list to a dynGroup. The new list is managed by the dynGroup.",
+    "inputs": {
+      "type": "DynGroup",
+      "length": "any",
+      "element_types": ["string", "string", "string", "integer"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": true
+    },
+    "errors": [
+      "TCL_ERROR if dyngroup not found, list already exists, bad datatype, or bad initial size."
+    ],
+    "example": "dg_addNewList myGroup newList long 10",
+    "see_also": ["dg_addExistingList", "dg_remove", "dl_create"]
+  },
+  {
+    "command": "dg_append",
+    "category": "Manipulation",
+    "synopsis": "dg_append dg_onto dg_from",
+    "brief": "Appends the second dyngroup onto the first dyngroup.",
+    "inputs": {
+      "type": "DynGroup",
+      "length": "any",
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": false
+    },
+    "errors": [
+      "TCL_ERROR if either dyngroup is not found or if dyngroups are incompatible."
+    ],
+    "example": "dg_append group1 group2",
+    "see_also": ["dg_create", "dg_copy"]
+  },
+  {
+    "command": "dg_clean",
+    "category": "Memory Management",
+    "synopsis": "dg_clean",
+    "brief": "Deletes all temporary dyngroups (names starting with 'group').",
+    "inputs": {
+      "type": "None",
+      "length": "N/A",
+      "element_types": []
+    },
+    "returns": {
+      "type": "void",
+      "new_object": false
+    },
+    "errors": [],
+    "example": "dg_clean",
+    "see_also": ["dg_delete", "dl_clean"]
+  },
+  {
+    "command": "dg_copy",
+    "category": "Creation",
+    "synopsis": "dg_copy from_dyngroup to_dyngroup",
+    "brief": "Copies an existing dynamic group to a new dynamic group. If the target dyngroup already exists, it is deleted first. The new dyngroup will contain copies of all lists from the source.",
+    "inputs": {
+      "type": "DynGroup",
+      "length": "any",
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": true
+    },
+    "errors": [
+      "TCL_ERROR if from_dyngroup is not found or if to_dyngroup name is the same as from_dyngroup."
+    ],
+    "example": "dg_copy sourceGroup destinationGroup",
+    "see_also": ["dg_create", "dg_append", "dg_addExistingList"]
+  },
+  {
+    "command": "dg_copyExistingList",
+    "category": "Manipulation",
+    "synopsis": "dg_copyExistingList dyngroup name [newname]",
+    "brief": "Copies an existing list into a dynGroup. The original list remains unchanged. If 'newname' is not provided, the list keeps its original name within the group.",
+    "inputs": {
+      "type": "DynGroup",
+      "length": "any",
+      "element_types": ["string", "string", "string"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": false
+    },
+    "errors": [
+      "TCL_ERROR if dyngroup or list not found, or if newname already exists in dyngroup."
+    ],
+    "example": "dg_copyExistingList myGroup existingList copiedListInGroup",
+    "see_also": ["dg_addExistingList", "dg_addNewList", "dg_remove"]
+  },
+  {
+    "command": "dg_create",
+    "category": "Creation",
+    "synopsis": "dg_create [groupname] [increment]",
+    "brief": "Creates a new, empty dynamic group. If 'groupname' is not provided, a unique name is generated (e.g., 'group0', 'group1'). 'increment' is an optional initial size hint for internal allocation.",
+    "inputs": {
+      "type": "None",
+      "length": "N/A",
+      "element_types": ["string", "integer"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": true
+    },
+    "errors": [
+      "TCL_ERROR if the groupname already exists or if the increment argument is invalid."
+    ],
+    "example": "dg_create myNewGroup 10",
+    "see_also": ["dg_copy", "dg_delete", "dg_addExistingList", "dg_addNewList"]
+  },
+  {
+    "command": "dg_delete",
+    "category": "Memory Management",
+    "synopsis": "dg_delete dyngroup_name1 [dyngroup_name2 ... | ALL]",
+    "brief": "Deletes one or more specified dynamic groups. If 'ALL' is provided, all existing dyngroups are deleted.",
+    "inputs": {
+      "type": "string",
+      "length": "1+",
+      "element_types": ["string"]
+    },
+    "returns": {
+      "type": "void",
+      "new_object": false
+    },
+    "errors": [
+      "TCL_ERROR if a specified dyngroup is not found (and not 'ALL')."
+    ],
+    "example": "dg_delete myGroup1 myGroup2\ndg_delete ALL",
+    "see_also": ["dg_create", "dg_clean", "dg_remove"]
+  },
+  {
+    "command": "dg_dir",
+    "category": "Inspection",
+    "synopsis": "dg_dir",
+    "brief": "Returns a Tcl list of names of all currently defined dynamic groups.",
+    "inputs": {
+      "type": "None",
+      "length": "N/A",
+      "element_types": []
+    },
+    "returns": {
+      "type": "list",
+      "element_type": "string",
+      "new_object": true
+    },
+    "errors": [],
+    "example": "set groupNames [dg_dir]",
+    "see_also": ["dg_exists", "dg_listnames", "dl_dir"]
+  },
+  {
+    "command": "dg_dump",
+    "category": "Inspection",
+    "synopsis": "dg_dump dyngroup [fileID [separator]]",
+    "brief": "Dumps the contents of a dynamic group to a specified Tcl channel (or stdout if no fileID is given). The 'separator' is an ASCII value for the character used to separate fields (default is tab).",
+    "inputs": {
+      "type": "varied",
+      "length": "1-3",
+      "element_types": ["string", "string", "integer"]
+    },
+    "returns": {
+      "type": "void",
+      "new_object": false
+    },
+    "errors": [
+      "TCL_ERROR if dyngroup not found, invalid fileID, or invalid separator."
+    ],
+    "example": "dg_dump myGroup\ndg_dump myGroup $myChannelId 32",
+    "see_also": ["dg_dumpListNames", "dg_write", "dl_dump"]
+  },
+  {
+    "command": "dg_dumpListNames",
+    "category": "Inspection",
+    "synopsis": "dg_dumpListNames dyngroup [fileID]",
+    "brief": "Dumps the names of the lists within a dynamic group to a specified Tcl channel (or stdout if no fileID is given).",
+    "inputs": {
+      "type": "varied",
+      "length": "1-2",
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "void",
+      "new_object": false
+    },
+    "errors": [
+      "TCL_ERROR if dyngroup not found or invalid fileID."
+    ],
+    "example": "dg_dumpListNames myGroup\ndg_dumpListNames myGroup $myChannelId",
+    "see_also": ["dg_dump", "dg_listnames", "dg_tclListnames", "dl_dir"]
+  },
+  {
+    "command": "dg_exists",
+    "category": "Inspection",
+    "synopsis": "dg_exists name",
+    "brief": "Checks if a dynamic group with the given name exists.",
+    "inputs": {
+      "type": "string",
+      "length": 1,
+      "element_types": ["string"]
+    },
+    "returns": {
+      "type": "integer",
+      "new_object": true,
+      "brief": "1 if the group exists, 0 otherwise."
+    },
+    "errors": [
+      "TCL_ERROR if 'name' argument is missing."
+    ],
+    "example": "if {[dg_exists myGroup]} { puts \"myGroup exists\" }",
+    "see_also": ["dg_dir", "dl_exists"]
+  },
+  {
+    "command": "dg_fromString",
+    "category": "Creation",
+    "synopsis": "dg_fromString string name",
+    "brief": "Creates a new dynamic group from its string representation. The format of the string should match that produced by 'dg_toString'.",
+    "inputs": {
+      "type": "varied",
+      "length": 2,
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": true,
+      "brief": "The name of the newly created dynamic group."
+    },
+    "errors": [
+      "TCL_ERROR if the name already exists, the input string is malformed, or memory allocation fails."
+    ],
+    "example": "set groupString [dg_toString existingGroup]\ndg_fromString $groupString newGroupFromString",
+    "see_also": ["dg_toString", "dg_fromString64", "dg_create", "dg_read"]
+  },
+  {
+    "command": "dg_fromString64",
+    "category": "Creation",
+    "synopsis": "dg_fromString64 base64_string name",
+    "brief": "Creates a new dynamic group from its Base64 encoded string representation. The string is first Base64 decoded, then processed like 'dg_fromString'.",
+    "inputs": {
+      "type": "varied",
+      "length": 2,
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": true,
+      "brief": "The name of the newly created dynamic group."
+    },
+    "errors": [
+      "TCL_ERROR if the name already exists, the input string is not valid Base64, the decoded string is malformed, or memory allocation fails."
+    ],
+    "example": "set groupString64 [dg_toString64 existingGroup]\ndg_fromString64 $groupString64 newGroupFromB64",
+    "see_also": ["dg_toString64", "dg_fromString", "dg_create", "dg_read"]
+  },
+  {
+    "command": "dg_json",
+    "category": "Serialization",
+    "synopsis": "dg_json dyngroup [row]",
+    "brief": "Converts a dynamic group, or a specific row within it, to a JSON string. `dg_toJSON` is an alias for this command.",
+    "inputs": {
+      "type": "varied",
+      "length": "1-2",
+      "element_types": ["string", "integer"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": true,
+      "brief": "A JSON string representation of the dynamic group or a single row."
+    },
+    "errors": [
+      "TCL_ERROR if dyngroup not found, invalid row index, or error during JSON creation/serialization."
+    ],
+    "example": "set fullGroupJson [dg_json myGroup]\nset row5Json [dg_json myGroup 5]",
+    "see_also": ["dg_fromString", "dg_toString", "dl_json"]
+  },
+  {
+    "command": "dg_listnames",
+    "category": "Inspection",
+    "synopsis": "dg_listnames dyngroup",
+    "brief": "Returns a new dynamic list containing the names of all lists within the specified dynamic group.",
+    "inputs": {
+      "type": "string",
+      "length": 1,
+      "element_types": ["string"]
+    },
+    "returns": {
+      "type": "DynList",
+      "element_type": "string",
+      "new_object": true,
+      "brief": "A new dynamic list of strings."
+    },
+    "errors": [
+      "TCL_ERROR if dyngroup is not found."
+    ],
+    "example": "set listNames [dg_listnames myGroup]\nforeach name $listNames {\n  puts \"List: $name\"\n}\ndl_delete $listNames",
+    "see_also": ["dg_dir", "dg_tclListnames", "dg_dumpListNames", "dl_create", "dl_delete"]
+  },
+  {
+    "command": "dg_read",
+    "category": "Creation",
+    "synopsis": "dg_read file [newname]",
+    "brief": "Reads a dynamic group from a file. The file can be a plain .dg file, an LZ4 compressed file (.lz4), or a GZip compressed file (e.g., .dgz).",
+    "inputs": {
+      "type": "varied",
+      "length": "1-2",
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": true,
+      "brief": "The name of the newly created dynamic group."
+    },
+    "errors": [
+      "TCL_ERROR if file not found, file not in recognized dg format, error during decompression, or if newname is invalid or causes a conflict."
+    ],
+    "example": "dg_read myDynGroupData.dg myGroupFromFile\ndg_read compressedData.dgz anotherGroup",
+    "see_also": ["dg_write", "dg_create", "dg_fromString"]
+  },
+  {
+    "command": "dg_remove",
+    "category": "Manipulation",
+    "synopsis": "dg_remove dyngroup list",
+    "brief": "Removes a specified list from a dynamic group. The list is deleted and its memory freed.",
+    "inputs": {
+      "type": "varied",
+      "length": 2,
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": false,
+      "brief": "The name of the modified dynamic group."
+    },
+    "errors": [
+      "TCL_ERROR if the dyngroup is not found or if the list is not found within the dyngroup."
+    ],
+    "example": "dg_remove myGroup listToRemove",
+    "see_also": ["dg_addExistingList", "dg_addNewList", "dg_delete"]
+  },
+  {
+    "command": "dg_rename",
+    "category": "Manipulation",
+    "synopsis": "dg_rename oldname newname",
+    "brief": "Renames a dynamic group or a list within a dynamic group. `oldname` can be `group` or `group:list` (or `group:index`). `newname` is the target name.",
+    "inputs": {
+      "type": "varied",
+      "length": 2,
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": false,
+      "brief": "The new name of the dynamic group or list."
+    },
+    "errors": [
+      "TCL_ERROR if oldname not found, newname (for a list) already exists in the group, or invalid list index provided."
+    ],
+    "example": "dg_rename oldGroup newGroup\ndg_rename myGroup:oldList newListInGroup\ndg_rename myGroup:0 firstListNewName",
+    "see_also": ["dg_copy", "dg_delete", "dl_rename"]
+  },
+  {
+    "command": "dg_reset",
+    "category": "Manipulation",
+    "synopsis": "dg_reset dyngroup_name1 [dyngroup_name2 ...]",
+    "brief": "Resets one or more dynamic groups, removing all lists they contain. The dynamic groups themselves are not deleted.",
+    "inputs": {
+      "type": "string",
+      "length": "1+",
+      "element_types": ["string"]
+    },
+    "returns": {
+      "type": "string",
+      "new_object": false,
+      "brief": "The name of the last dynamic group processed."
+    },
+    "errors": [
+      "TCL_ERROR if any specified dyngroup is not found."
+    ],
+    "example": "dg_reset myGroup\ndg_reset groupA groupB",
+    "see_also": ["dg_delete", "dg_remove", "dg_create"]
+  },
+  {
+    "command": "dg_tempname",
+    "category": "Utility",
+    "synopsis": "dg_tempname (also aliased as dg_tmpname)",
+    "brief": "Generates and returns a unique name, typically of the form 'groupN' (e.g., 'group0', 'group1'), suitable for creating a temporary dynamic group. The internal counter for 'N' is incremented with each call and also by other dg commands that generate default names.",
+    "inputs": {
+      "type": "None",
+      "length": "N/A",
+      "element_types": []
+    },
+    "returns": {
+      "type": "string",
+      "new_object": true,
+      "brief": "A unique temporary group name."
+    },
+    "errors": [],
+    "example": "set temp_dg_name [dg_tempname]\ndg_create $temp_dg_name",
+    "see_also": ["dg_create", "dg_clean", "dl_tempname"]
+  },
+  {
+    "command": "dg_toString",
+    "category": "Serialization",
+    "synopsis": "dg_toString dyngroup varname",
+    "brief": "Serializes the specified dynamic group into a binary string (byte array) and stores it in the Tcl variable 'varname'. This binary string can be used by 'dg_fromString' to recreate the dynamic group.",
+    "inputs": {
+      "type": "varied",
+      "length": 2,
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "integer",
+      "new_object": true,
+      "brief": "The size in bytes of the binary string stored in 'varname'."
+    },
+    "side_effects": [
+      "Creates or overwrites a Tcl variable 'varname' with the binary string representation of the dyngroup."
+    ],
+    "errors": [
+      "TCL_ERROR if dyngroup is not found, or if 'varname' is not a valid variable name or cannot be set."
+    ],
+    "example": "set bytes_count [dg_toString myExistingGroup serializedGroupVar]\nputs \"myExistingGroup was serialized into variable 'serializedGroupVar' ($bytes_count bytes)\"",
+    "see_also": ["dg_fromString", "dg_toString64", "dg_json", "dg_write"]
+  },
+  {
+    "command": "dg_toString64",
+    "category": "Serialization",
+    "synopsis": "dg_toString64 dyngroup varname",
+    "brief": "Serializes the specified dynamic group into a Base64 encoded string and stores it in the Tcl variable 'varname'. This string can be used by 'dg_fromString64' to recreate the dynamic group.",
+    "inputs": {
+      "type": "varied",
+      "length": 2,
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "integer",
+      "new_object": true,
+      "brief": "The length of the Base64 encoded string stored in 'varname'."
+    },
+    "side_effects": [
+      "Creates or overwrites a Tcl variable 'varname' with the Base64 encoded string representation of the dyngroup."
+    ],
+    "errors": [
+      "TCL_ERROR if dyngroup is not found, or if 'varname' is not a valid variable name or cannot be set."
+    ],
+    "example": "set str_len [dg_toString64 myExistingGroup serializedB64Var]\nputs \"myExistingGroup was serialized (Base64) into variable 'serializedB64Var' ($str_len characters)\"",
+    "see_also": ["dg_fromString64", "dg_toString", "dg_json", "dg_write"]
+  },
+  {
+    "command": "dg_write",
+    "category": "Serialization",
+    "synopsis": "dg_write dyngroup [filename]",
+    "brief": "Writes a dynamic group to a file. If 'filename' is not provided, it defaults to '<dyngroup>.dgz' (GZip compressed). If 'filename' ends with '.lz4', LZ4 compression is used. If it ends with '.dgz' (or any 'z' as the last char of extension), GZip compression is used. Otherwise, it's written as uncompressed binary.",
+    "inputs": {
+      "type": "varied",
+      "length": "1-2",
+      "element_types": ["string", "string"]
+    },
+    "returns": {
+      "type": "void",
+      "new_object": false
+    },
+    "errors": [
+      "TCL_ERROR if dyngroup not found, or if there is an error writing to the specified file."
+    ],
+    "example": "dg_write myGroup              ;# Writes to myGroup.dgz (GZip compressed)\ndg_write myGroup myDataFile.dg  ;# Writes as uncompressed binary\ndg_write myGroup archive.lz4    ;# Writes as LZ4 compressed",
+    "see_also": ["dg_read", "dg_toString", "dg_toString64", "dg_json"]
+  }
+]

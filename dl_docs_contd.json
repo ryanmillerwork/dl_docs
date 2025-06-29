@@ -1,0 +1,29 @@
+[
+  {
+    "command": "dl_rename",
+    "category": "List Management",
+    "synopsis": "dl_rename old_dynlist_name new_dynlist_name",
+    "brief": "Renames an existing dynamic list 'old_dynlist_name' to 'new_dynlist_name'.",
+    "inputs": {
+      "type": "binary",
+      "length": "2",
+      "element_types": ["string (old_dynlist_name)", "string (new_dynlist_name)"],
+      "constraints": [
+        "'old_dynlist_name' must be the name of an existing dynamic list.",
+        "'new_dynlist_name' must be a valid dynamic list name and should not typically be in use (behavior if it is in use can vary: error or overwrite). Standard rename operations usually error if the new name is taken."
+      ]
+    },
+    "returns": {
+      "type": "string (new_dynlist_name)",
+      "new_object": false,
+      "brief": "Typically returns the 'new_dynlist_name' on success."
+    },
+    "errors": [
+      "TCL_ERROR if 'old_dynlist_name' does not exist.",
+      "TCL_ERROR if 'new_dynlist_name' is already in use by another dynamic list (common behavior).",
+      "TCL_ERROR if 'new_dynlist_name' is not a valid name format."
+    ],
+    "example": "set myList [dl_create 1 2 3]\n# myList exists\ndl_rename $myList myRenamedList\n# The list originally named 'myList' is now named 'myRenamedList'\n# Trying to use 'myList' would result in an error.\n# [dl_exists $myList] would be 0\n# [dl_exists myRenamedList] would be 1\n\n# set anotherList [dl_create 4 5]\n# dl_rename myRenamedList $anotherList ;# This would likely cause an error if anotherList already exists",
+    "see_also": ["dl_copy", "dl_delete", "dg_rename"]
+  }
+]
