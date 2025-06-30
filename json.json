@@ -1,0 +1,45 @@
+  {
+    "command": "dl_atan",
+    "category": "Arithmetic / Trigonometric",
+    "synopsis": "dl_atan <list> | dl_atan <number>",
+    "brief": "Computes the element-wise arc tangent of a list or a single number. Returns a new list of floats (radians).",
+    "inputs": {
+      "type": "DynList_or_Number",
+      "length": 1,
+      "element_types": ["numeric"]
+    },
+    "returns": {
+      "type": "DynList",
+      "new_object": true,
+      "element_type": "float",
+      "brief": "Values are in radians (typically in the range -PI/2 to PI/2)."
+    },
+    "errors": [
+      "TCL_ERROR if the input list is not found or is not numeric."
+    ],
+    "example": "dl_tcllist [dl_atan [dl_flist 0 1 -1 Inf]] ;# returns 0.0 0.7854 -0.7854 1.5708",
+    "see_also": ["dl_tan", "dl_acos", "dl_asin", "dl_atan2"]
+  },
+  {
+    "command": "dl_atan2",
+    "category": "Arithmetic / Trigonometric",
+    "synopsis": "dl_atan2 <list1> <list2>",
+    "brief": "Computes the element-wise arc tangent of two lists. Returns a new list of floats (radians).",
+    "inputs": {
+      "type": "DynList",
+      "length": 2,
+      "element_types": ["numeric", "numeric"]
+    },
+    "returns": {
+      "type": "DynList",
+      "new_object": true,
+      "element_type": "float",
+      "brief": "Values are in radians (typically in the range -PI to PI)."
+    },
+    "errors": [
+      "TCL_ERROR if the input lists are not found or are not numeric."
+    ],
+    "example": "dl_tcllist [dl_atan2 [dl_flist 0 1 -1 Inf] [dl_flist 1 -1 0 Inf]] ;# returns 0.0 1.5708 -1.5708 0.7854",
+    "see_also": ["dl_tan", "dl_acos", "dl_asin", "dl_atan"]
+  }
+} 
