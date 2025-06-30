@@ -1260,33 +1260,6 @@ Example
 See also
     dl_exists, dl_length, dl_depth
 
-
-=== dl_deep_pack (Serialization) ===
-Synopsis
-    dl_deep_pack <list_of_lists>
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should serialize a nested list,
-    but it is not a valid command in the `essctrl` environment.
-
-See also
-    dl_deep_unpack (does not exist)
-
-
-=== dl_deep_unpack (Serialization) ===
-Synopsis
-    dl_deep_unpack <packed_list>
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should deserialize a list
-    created by `dl_deep_pack`, but it is not a valid command.
-
-See also
-    dl_deep_pack (does not exist)
-
-
 === dl_delete (Memory Management) ===
 Synopsis
     dl_delete <list_name> [list_name2 ...]
@@ -2118,19 +2091,6 @@ Example
 See also
     dl_lastPos
 
-=== dl_first_index_list (Searching / Indexing) ===
-Synopsis
-    dl_first_index_list <source_dynlist_name> <search_values_dynlist_name> [start_index]
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should find the index of the
-    first element in a list that matches any value from a second list, but
-    it is not a valid command in the `essctrl` environment.
-
-See also
-    dl_find, dl_firstPos, dl_index_list, dl_oneof
-
 === dl_flist (Creation) ===
 Synopsis
     dl_flist [value1 value2 ...]
@@ -2395,19 +2355,6 @@ Example
 See also
     dl_ones, dl_fromto
 
-=== dl_generateDynList (Creation / Advanced) ===
-Synopsis
-    dl_generateDynList <count> <script_body> [type_hint]
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should generate a list by
-    executing a script, but it is not a valid command in the `essctrl`
-    environment.
-
-See also
-    dl_dotimes, dl_fromto
-
 === dl_get (Accessing Elements) ===
 Synopsis
     dl_get <list_name> <index>
@@ -2582,42 +2529,6 @@ Example
 See also
     dl_bins, dl_histBins
 
-=== dl_histBins (Utility / Histogramming) ===
-Synopsis
-    dl_histBins <data_list> <bin_edges_list>
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should compute a histogram using
-    predefined bin edges, but it is not a valid command in the `essctrl`
-    environment.
-
-See also
-    dl_hist, dl_bins
-
-=== dl_histLists (Utility / Histogramming) ===
-Synopsis
-    dl_histLists <list_of_lists> <nbins>
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should compute histograms for a
-    list of lists, but it is not a valid command in the `essctrl` environment.
-
-See also
-    dl_hist
-
-=== dl_hmean / dl_hstd / dl_hvar (Reduction) ===
-
-Brief
-    [WARNING: These commands do not exist.]
-    The documentation mentions `dl_hmean` (harmonic mean), `dl_hstd`
-    (harmonic standard deviation), and `dl_hvar` (harmonic variance), but
-    none of these are valid commands in the `essctrl` environment.
-
-See also
-    dl_mean, dl_std, dl_var
-
 === dl_idiff (Arithmetic) ===
 Synopsis
     dl_idiff <list1> [list2]
@@ -2692,10 +2603,53 @@ Example
 See also
     dl_flist, dl_slist, dl_llist
 
-=== dl_increment / dl_incr (Arithmetic) ===
+=== dl_incr (Arithmetic) ===
+Synopsis
+    dl_incr <list_name> [index]
+
+Brief
+    Increments an element of a numeric list by 1 in-place. `dl_incr` is an
+    alias for `dl_increment`.
+
+    [WARNING: The whole-list operation is broken.]
+
+Inputs & Behavior
+    Case 1: With Index (`dl_incr <list_name> <index>`)
+    • This is the only reliable way to use this command.
+    • It correctly increments the integer element at the specified `index`
+      by 1, modifying the list in-place.
+
+    Case 2: Without Index (`dl_incr <list_name>`)
+    • This usage is BUGGY. Instead of incrementing all elements, it appends
+      a new element to the list, whose value is the original last element
+      plus one. It should not be used.
+
+Side Effects
+    • The input list is modified.
+
+Errors
+    • TCL_ERROR: `dl_incr: index out of range` if the index is invalid.
+    • TCL_ERROR: `dl_incr: list must be ints` if the list is not an
+      integer list.
+
+Example (Correct Usage)
+    set nums [dl_ilist 5 10 15]
+    dl_incr $nums 1
+    dl_tcllist $nums
+    # → 5 11 15
+
+Example (Buggy Usage)
+    set buggy_nums [dl_ilist 5 10 15]
+    dl_incr $buggy_nums
+    dl_tcllist $buggy_nums
+    # → 5 10 15 16  (Incorrectly appends 15+1)
+
+See also
+    dl_add, dl_incr
+
+=== dl_increment (Arithmetic) ===
 Synopsis
     dl_increment <list_name> [index]
-    dl_incr <list_name> [index]
 
 Brief
     Increments an element of a numeric list by 1 in-place. `dl_incr` is an
@@ -2735,7 +2689,7 @@ Example (Buggy Usage)
     # → 5 10 15 16  (Incorrectly appends 15+1)
 
 See also
-    dl_add
+    dl_add, dl_incr
 
 === dl_index (Creation / Sequence Generation) ===
 Synopsis
@@ -2767,19 +2721,6 @@ Example
 
 See also
     dl_get, dl_fromto
-
-=== dl_index_list (Searching / Indexing) ===
-Synopsis
-    dl_index_list <source_dynlist_name> <search_values_dynlist_name> [start_index]
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should find the indices of
-    elements in a source list that match values from a search list, but it
-    is not a valid command in the `essctrl` environment.
-
-See also
-    dl_find, dl_oneof
 
 === dl_insert (Manipulation) ===
 Synopsis
@@ -3010,19 +2951,6 @@ Example
 
 See also
     dl_firstPos
-
-=== dl_last_index_list (Searching / Indexing) ===
-Synopsis
-    dl_last_index_list <source_dynlist_name> <search_values_dynlist_name> [end_index]
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should find the index of the
-    last element in a list that matches any value from a second list, but
-    it is not a valid command in the `essctrl` environment.
-
-See also
-    dl_first_index_list, dl_lastPos, dl_find, dl_oneof
 
 === dl_length (Introspection) ===
 Synopsis
@@ -3479,19 +3407,6 @@ Example
 See also
     dl_min, dl_max_positions, dl_sum, dl_mean
 
-=== dl_max_positions (Reduction / Indexing) ===
-Synopsis
-    dl_max_positions <list_name>
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should return the indices of
-    all occurrences of the maximum value in a list, but it is not a valid
-    command in the `essctrl` environment.
-
-See also
-    dl_max, dl_min_positions, dl_eqIndex
-
 === dl_mean (Reduction) ===
 Synopsis
     dl_mean <list_name>
@@ -3524,19 +3439,6 @@ Example
 See also
     dl_sum, dl_std, dl_var
 
-=== dl_mean_list (Reduction) ===
-Synopsis
-    dl_mean_list <list_name>
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should calculate the mean of a
-    list and return the result as a new single-element list, but it is not
-    a valid command in the `essctrl` environment.
-
-See also
-    dl_mean, dl_sum, dl_std
-
 === dl_min (Reduction) ===
 Synopsis
     dl_min <list_name>
@@ -3565,19 +3467,6 @@ Example
 
 See also
     dl_max, dl_min_positions, dl_sum, dl_mean
-
-=== dl_min_positions (Reduction / Indexing) ===
-Synopsis
-    dl_min_positions <list_name>
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should return the indices of
-    all occurrences of the minimum value in a list, but it is not a valid
-    command in the `essctrl` environment.
-
-See also
-    dl_min, dl_max_positions, dl_eqIndex
 
 === dl_mod (Arithmetic) ===
 Synopsis
@@ -3958,29 +3847,6 @@ Example
 See also
     dl_delete, dl_create
 
-=== dl_bmax / dl_bmean / dl_bmin (Reduction / List of Lists) ===
-
-Brief
-    [WARNING: These commands do not exist.]
-    The documentation mentions `dl_bmax` (maximum of each sublist), `dl_bmean`
-    (mean of each sublist), and `dl_bmin` (minimum of each sublist), but
-    none of these are valid commands in the `essctrl` environment. The command
-    `dl_bmins` exists for finding the minimums.
-
-See also
-    dl_bmins, dl_bsums, dl_bstds
-
-=== dl_bshiftcycle / dl_bstd (Manipulation / List of Lists) ===
-
-Brief
-    [WARNING: These commands do not exist.]
-    The documentation mentions `dl_bshiftcycle` and `dl_bstd` (standard
-    deviation of each sublist), but they are not valid commands in the
-    `essctrl` environment. `dl_bstds` exists for standard deviations.
-
-See also
-    dl_bshift, dl_bstds
-
 === dl_char (Conversion) ===
 Synopsis
     dl_char <source_list>
@@ -4095,17 +3961,6 @@ Example
 See also
     dl_hist, dl_parzenLists (likely also broken)
 
-=== dl_parzenLists (Statistics / Broken) ===
-
-Brief
-    [WARNING: This command does not exist.]
-    Following the pattern of other related commands, `dl_parzenLists` is
-    mentioned in the function list but is not a valid command in the
-    `essctrl` environment.
-
-See also
-    dl_parzen
-
 === dl_pickone (Manipulation / Selection) ===
 Synopsis
     dl_pickone <list_name>
@@ -4137,28 +3992,18 @@ Example
 See also
     dl_choose, dl_randchoose, dl_first, dl_last
 
-=== dl_pushTemps / dl_popTemps (Memory Management) ===
+=== dl_pushTemps (Memory Management) ===
 Synopsis
     dl_pushTemps
-    dl_popTemps
 
 Brief
-    Provides a stack-based mechanism to save and restore the state of
-    temporary list creation. `dl_pushTemps` saves the current state of the
-    temporary list registry. `dl_popTemps` restores the most recently saved
-    state, deleting any temporary lists created since the corresponding push.
+    Saves the current state of the temporary list registry onto a stack. This allows for creating a "savepoint" of which temporary lists exist at a certain time. Use `dl_popTemps` to restore to this point.
 
 Inputs
-    These commands take no arguments.
+    This command takes no arguments.
 
 Side Effects
-    • `dl_pushTemps`: Creates a savepoint for the temporary list registry.
-    • `dl_popTemps`: Deletes all temporary lists (names starting with '%')
-      created after the last `dl_pushTemps` call.
-
-Errors
-    • `dl_popTemps: popped empty templist stack` if `dl_popTemps` is called
-      more times than `dl_pushTemps`.
+    • Creates a savepoint for the temporary list registry.
 
 Example
     # Save the current state (e.g., no temporary lists)
@@ -4177,7 +4022,42 @@ Example
     dl_exists $temp1   ;# → 0
 
 See also
-    dl_clean, dl_delete
+    dl_popTemps, dl_clean, dl_delete
+
+=== dl_popTemps (Memory Management) ===
+Synopsis
+    dl_popTemps
+
+Brief
+    Restores the most recently saved state of the temporary list registry from the stack created by `dl_pushTemps`. This deletes any temporary lists (names starting with '%') created since the corresponding `dl_pushTemps` call.
+
+Inputs
+    This command takes no arguments.
+
+Side Effects
+    • Deletes all temporary lists created after the last `dl_pushTemps` call.
+
+Errors
+    • `dl_popTemps: popped empty templist stack` if `dl_popTemps` is called more times than `dl_pushTemps`.
+
+Example
+    # Save the current state (e.g., no temporary lists)
+    dl_pushTemps
+
+    # Create some temporary lists
+    set temp1 [dl_flist 1.1 2.2]
+    set temp2 [dl_add $temp1 5]
+
+    # At this point, two temporary lists exist.
+
+    # Restore the saved state, deleting temp1 and temp2
+    dl_popTemps
+
+    # Now, temp1 and temp2 no longer exist.
+    dl_exists $temp1   ;# → 0
+
+See also
+    dl_pushTemps, dl_clean, dl_delete
 
 === dl_prepend (Manipulation) ===
 Synopsis
@@ -4447,14 +4327,12 @@ Example
 See also
     dl_repeat, dl_fill, dl_cycle
 
-=== dl_repeat / dl_repeatElements (Manipulation / Repetition) ===
+=== dl_repeat (Manipulation / Repetition) ===
 Synopsis
     dl_repeat <list_name> <n>
-    dl_repeatElements <list_name> <n>
 
 Brief
-    Creates a new list by repeating each element of a source list `n` times.
-    `dl_repeat` and `dl_repeatElements` are aliases for the same functionality.
+    Creates a new list by repeating each element of a source list `n` times. This command is an alias for `dl_repeatElements`.
 
 Inputs
     • list_name … The name of the DynList to use as a source.
@@ -4472,7 +4350,32 @@ Example
     # → a a a b b b
 
 See also
-    dl_replicate, dl_fill
+    dl_repeatElements, dl_replicate, dl_fill
+
+=== dl_repeatElements (Manipulation / Repetition) ===
+Synopsis
+    dl_repeatElements <list_name> <n>
+
+Brief
+    Creates a new list by repeating each element of a source list `n` times. This command is an alias for `dl_repeat`.
+
+Inputs
+    • list_name … The name of the DynList to use as a source.
+    • n …………… A positive integer number of times to repeat each element.
+
+Returns
+    • A new DynList containing the repeated elements.
+
+Errors
+    • TCL_ERROR if `n` is not a valid positive integer.
+
+Example
+    # Repeat each element of {a b} three times
+    dl_tcllist [dl_repeatElements [dl_slist a b] 3]
+    # → a a a b b b
+
+See also
+    dl_repeat, dl_replicate, dl_fill
 
 === dl_replace (Manipulation) ===
 Synopsis
@@ -5228,19 +5131,6 @@ See also
 See also
     dl_cycle, dl_permute, dl_reverse
 
-=== dl_shiftcycle (Manipulation / Permutation) ===
-Synopsis
-    dl_shiftcycle <list> [shift_amount]
-
-Brief
-    [WARNING: This command does not exist.]
-    This command is listed in some documentation but is not a valid command
-    in the `essctrl` environment. Its name suggests it would be an alias for
-    either `dl_shift` or `dl_cycle`.
-
-See also
-    dl_shift, dl_cycle
-
 === dl_short (Conversion) ===
 Synopsis
     dl_short <source_list>
@@ -5820,13 +5710,6 @@ Example
 See also
     dl_prod, dl_mean, dl_cumsum, dl_bsums
 
-=== dl_sumcols_list (Reduction / List of Lists) ===
-
-Brief
-    [WARNING: This command does not exist.]
-    This command is found in some documentation but is not a valid command
-    in the `essctrl` environment.
-
 === dl_tan (Arithmetic / Trigonometric) ===
 Synopsis
     dl_tan <list> | dl_tan <number_in_radians>
@@ -5921,16 +5804,6 @@ Example (List of Lists)
 
 See also
     dl_dump, dl_length
-
-=== dl_tempname (Creation) ===
-Synopsis
-    dl_tempname
-
-Brief
-    [WARNING: This command does not exist.]
-    The documentation indicates this command should generate a unique name
-    for a temporary list, but it is not a valid command in the `essctrl`
-    environment.
 
 === dl_transpose (Manipulation / Restructuring) ===
 Synopsis
