@@ -5436,3 +5436,422 @@ Example
 See also
     dl_create, dl_ilist, dl_flist, dl_llist
 
+=== dl_sort (Manipulation / Sorting) ===
+Synopsis
+    dl_sort <list>
+
+Brief
+    Sorts the elements of a simple list. Returns a new list with the
+    elements sorted in ascending order. The original list is not modified.
+
+Inputs
+    • list … The DynList to sort. It must be a simple (1D) list.
+
+Returns
+    • A new DynList of the same type, containing the sorted elements.
+
+Errors
+    • `TCL_ERROR: dynlist "..." not found` if the input list does not exist.
+    • `TCL_ERROR` if the list contains incompatible types for sorting.
+
+Example
+    # Sort a list of integers
+    essctrl -c 'dl_tcllist [dl_sort [dl_ilist 3 1 4 2]]'
+    # → 1 2 3 4
+
+    # Sort a list of strings
+    essctrl -c 'dl_tcllist [dl_sort [dl_slist c a d b]]'
+    # → a b c d
+
+See also
+    dl_bsort, dl_sortIndices, dl_shuffle, dl_reverse
+
+
+=== dl_sortIndices (Manipulation / Sorting) ===
+Synopsis
+    dl_sortIndices <list>
+
+Brief
+    Returns a list of indices that would sort the elements of a simple list.
+    The original list is not modified.
+
+Inputs
+    • list … The DynList to get sort indices for. It must be a simple (1D) list.
+
+Returns
+    • A new integer DynList containing the indices that would sort the input list.
+
+Errors
+    • `TCL_ERROR: dynlist "..." not found` if the input list does not exist.
+    • `TCL_ERROR` if the list contains incompatible types for sorting.
+
+Example
+    # Get the indices that would sort an integer list
+    # For {30 10 40 20}, the sorted order is 10, 20, 30, 40
+    # which are at indices 1, 3, 0, 2 respectively.
+    essctrl -c 'dl_tcllist [dl_sortIndices [dl_ilist 30 10 40 20]]'
+    # → 1 3 0 2
+
+    # Get the indices that would sort a string list
+    essctrl -c 'dl_tcllist [dl_sortIndices [dl_slist c a d b]]'
+    # → 1 3 0 2
+
+See also
+    dl_sort, dl_bsortIndices, dl_permute, dl_shuffle
+
+
+=== dl_sortByList (Manipulation / Sorting) ===
+Synopsis
+    dl_sortByList <list_to_sort> <sort_by_list>
+
+Brief
+    Sorts a list based on the values in a second list. Returns a new list
+    with the elements of the first list reordered. This command has special
+    behavior when the `sort_by_list` contains duplicate values.
+
+Inputs
+    • list_to_sort … The DynList whose elements will be reordered.
+    • sort_by_list … A DynList containing the values to sort by. Can be
+                     numeric or string type.
+
+Returns
+    • If `sort_by_list` has unique values, it returns a new simple list
+      containing the reordered elements from `list_to_sort`.
+    • If `sort_by_list` has duplicate values, it returns a new list of lists,
+      where elements from `list_to_sort` are grouped into sublists based
+      on the matching duplicate keys. The sort is stable within these groups.
+
+Errors
+    • `TCL_ERROR: ...cannot sort empty list...` if the input lists are empty.
+
+Special Cases
+    • If the lists have different lengths, the operation is silently
+      truncated to the length of the shorter list. This can lead to
+      unexpected results and should be avoided.
+
+Example (Standard Sort)
+    # Sort a list of strings based on a list of numbers
+    set items [dl_slist d a c b]
+    set order [dl_ilist 4 1 3 2]
+    # The 'order' list sorts to {1 2 3 4}, which corresponds to
+    # elements {a b c d} from the 'items' list.
+    dl_tcllist [dl_sortByList $items $order]
+    # → a b c d
+
+Example (Grouping with Duplicate Keys)
+    # When keys are duplicated, the command groups the corresponding items.
+    set items [dl_slist a b c d]
+    set keys [dl_ilist 2 1 2 1]
+    # It groups items for key '1' ({b d}) and items for key '2' ({a c}).
+    # The result is a list of lists.
+    dl_tcllist [dl_sortByList $items $keys]
+    # → {b d} {a c}
+
+See also
+    dl_sort, dl_sortIndices, dl_permute
+
+
+=== dl_spliceAfter (Manipulation / Broken) ===
+Synopsis
+    dl_spliceAfter <list1> <list2>
+
+Brief
+    [WARNING: This command appears to be non-functional.]
+    It is intended to splice list elements, but all attempts to use it with
+    various list types (simple lists, lists of lists) result in an
+    `unable to splice lists` error.
+
+Inputs
+    • Unknown. The command consistently fails.
+
+Returns
+    • Nothing. The command errors out.
+
+Example
+    # This command fails.
+    essctrl -c "set l1 [dl_slist a b]; set l2 [dl_slist c d]; dl_spliceAfter \$l1 \$l2"
+    # → dl_spliceAfter: unable to splice lists
+
+See also
+    dl_spliceBefore, dl_insert, dl_concat
+
+
+=== dl_spliceBefore (Manipulation / Broken) ===
+Synopsis
+    dl_spliceBefore <list1> <list2>
+
+Brief
+    [WARNING: This command appears to be non-functional.]
+    It is intended to splice list elements, but all attempts to use it result
+    in an `unable to splice lists` error, similar to its counterpart,
+    `dl_spliceAfter`.
+
+Inputs
+    • Unknown. The command consistently fails.
+
+Returns
+    • Nothing. The command errors out.
+
+Example
+    # This command fails.
+    essctrl -c "set l1 [dl_slist a b]; set l2 [dl_slist c d]; dl_spliceBefore \$l1 \$l2"
+    # → dl_spliceBefore: unable to splice lists
+
+See also
+    dl_spliceAfter, dl_insert, dl_concat
+
+
+=== dl_sqrt (Arithmetic / Transcendental) ===
+Synopsis
+    dl_sqrt <list> | dl_sqrt <number>
+
+Brief
+    Computes the element-wise square root of a numeric list or a single
+    number. Returns a new list of floats.
+
+Inputs
+    • Type …………… DynList_or_Number
+    • Element types … numeric
+
+Returns
+    • A new float DynList.
+    • For negative inputs, the result is `NaN` (Not a Number).
+
+Errors
+    • `TCL_ERROR: dl_sqrt: invalid list operand` if the list is not numeric.
+
+Example
+    # Square root of positive numbers
+    dl_tcllist [dl_sqrt [dl_ilist 4 9 16]]
+    # → 2.0 3.0 4.0
+
+    # Square root of zero and a negative number
+    dl_tcllist [dl_sqrt [dl_flist 25 0 -9]]
+    # → 5.0 0.0 -NaN
+
+See also
+    dl_exp, dl_pow, dl_log
+
+
+=== dl_std (Reduction / Statistics) ===
+Synopsis
+    dl_std <list>
+
+Brief
+    Calculates the sample standard deviation of the elements in a numeric list.
+
+    [WARNING: This command has a critical bug.] It does not produce an error
+    for non-numeric lists. Instead, it appears to convert non-numeric
+    elements to `0` internally, leading to silent, incorrect results.
+
+Inputs
+    • list … A numeric DynList.
+
+Returns
+    • A single float value for the sample standard deviation (n-1 denominator).
+    • Returns `0.0` for lists with fewer than two elements, including empty lists.
+    • Returns an incorrect value for non-numeric lists instead of erroring.
+
+Errors
+    • This command fails to error on non-numeric input.
+
+Example
+    # Standard case
+    dl_std [dl_ilist 1 2 3 4 5]
+    # → 1.581139
+
+    # Edge cases
+    dl_std [dl_ilist 10]    ;# → 0.0
+    dl_std [dl_ilist]      ;# → 0.0
+
+    # Buggy behavior with non-numeric data
+    # Instead of erroring, it treats strings as 0.
+    # The std of {0, 0, 0} is 0.
+    dl_std [dl_slist a b c]
+    # → 0.0
+
+See also
+    dl_mean, dl_var, dl_bstds
+
+
+=== dl_stringmatch (Searching / Broken) ===
+Synopsis
+    dl_stringmatch <list1> <list2>
+
+Brief
+    [WARNING: This command appears to be non-functional.]
+    Despite its name, this command does not seem to perform string matching.
+    All attempts to use it, whether with glob patterns or for simple
+    equality checks, result in an `unable to compare` error.
+
+Inputs
+    • Unknown. The command consistently fails.
+
+Returns
+    • Nothing. The command errors out.
+
+Example
+    # This attempt at glob matching fails.
+    essctrl -c 'dl_tcllist [dl_stringmatch [dl_slist apple banana] [dl_slist a* b*]]'
+    # → dl_stringmatch: unable to compare ...
+
+See also
+    dl_regexp, dl_regmatch, dl_eq
+
+=== dl_sub (Arithmetic) ===
+Synopsis
+    dl_sub <list_or_val1> <list_or_val2> [<list_or_val3>...]
+
+Brief
+    Performs element-wise subtraction. The elements of the second (and any
+    subsequent) lists are subtracted from the elements of the first list.
+
+Inputs
+    • Operands … Two or more numeric DynLists or scalar values.
+    • Constraints … All list inputs must have the same length. If a scalar
+                    is provided, it is broadcast to all elements.
+
+Returns
+    • A new DynList containing the results of the subtraction.
+
+Errors
+    • `TCL_ERROR: dl_sub: unable to combine ...` if lists have different
+      lengths or contain non-numeric data.
+
+Example
+    # List - List
+    dl_tcllist [dl_sub [dl_ilist 10 20 30] [dl_ilist 1 2 3]]
+    # → 9 18 27
+
+    # List - Scalar
+    dl_tcllist [dl_sub [dl_ilist 10 20 30] 5]
+    # → 5 15 25
+
+    # Chained subtraction
+    dl_tcllist [dl_sub [dl_ilist 10 20 30] [dl_ilist 1 2 3] [dl_ilist 5 5 5]]
+    # → 4 13 22
+
+See also
+    dl_add, dl_mult, dl_div, dl_negate
+
+=== dl_sublist (Manipulation / Obscure) ===
+Synopsis
+    dl_sublist <list>
+
+Brief
+    [WARNING: This command's function is unknown.]
+    It takes a single list as an argument but its behavior is not clear. For
+    various valid list inputs (simple lists, lists of lists), the command
+    consistently returns the single value `0` without error. Its intended
+    purpose, likely related to creating a sublist or slice, could not be
+    determined. It should not be used.
+
+Inputs
+    • list … A DynList.
+
+Returns
+    • The integer `0`.
+
+Example
+    # This command returns 0, not a sublist.
+    essctrl -c 'dl_tcllist [dl_sublist [dl_ilist 1 2 3 4 5]]'
+    # → 0
+
+See also
+    dl_get, dl_choose, dl_subshift
+
+=== dl_subshift (Manipulation / Obscure) ===
+Synopsis
+    dl_subshift <list> <shift_amount>
+
+Brief
+    [WARNING: This command's function is unknown.]
+    It takes a list (presumably a list of lists) and a shift amount, but its
+    behavior is not clear. It does not appear to shift the top-level
+    sublists, and its output is not in a standard, iterable format, making
+    it impossible to inspect the results of the operation. It should not be
+    used.
+
+Inputs
+    • list ……… A DynList, likely a list of lists.
+    • shift_amount … An integer shift amount.
+
+Returns
+    • An unknown and seemingly unusable value.
+
+Example
+    # This command produces a result that cannot be inspected.
+    essctrl -c 'set s1 [dl_slist a]; set lol [dl_llist $s1]; dl_subshift $lol 1'
+
+See also
+    dl_shift, dl_bshift, dl_cycle
+
+=== dl_sum (Reduction) ===
+Synopsis
+    dl_sum <list>
+
+Brief
+    Computes the sum of all elements in a numeric list.
+
+    [WARNING: This command fails silently.] If the list is empty or contains
+    non-numeric data, the command produces no output and no error, which can
+    hide problems in scripts.
+
+Inputs
+    • list … A numeric DynList.
+
+Returns
+    • A single number representing the sum of the elements.
+    • Returns nothing if the list is empty or contains non-numeric values.
+
+Example
+    # Standard case
+    dl_sum [dl_ilist 1 2 3 4 5]
+    # → 15
+
+    # Silent failure with an empty list
+    dl_sum [dl_ilist]
+    # → (no output)
+
+    # Silent failure with non-numeric data
+    dl_sum [dl_slist a b c]
+    # → (no output)
+
+See also
+    dl_prod, dl_mean, dl_cumsum, dl_bsums
+
+=== dl_sumcols_list (Reduction / List of Lists) ===
+
+Brief
+    [WARNING: This command does not exist.]
+    This command is found in some documentation but is not a valid command
+    in the `essctrl` environment.
+
+
+=== dl_tan (Arithmetic / Trigonometric) ===
+Synopsis
+    dl_tan <list> | dl_tan <number_in_radians>
+
+Brief
+    Computes the element-wise tangent of a list or a single number.
+    Input values are assumed to be in radians.
+
+Inputs
+    • Type …………… DynList_or_Number
+    • Element types … numeric
+
+Returns
+    • A new float DynList containing the tangent of each input value.
+
+Errors
+    • `TCL_ERROR: dl_tan: invalid list operand` if the list is not numeric.
+
+Example
+    # Angles for 0, PI/4, and PI/2 (showing asymptote)
+    set angles [dl_flist 0 0.7854 1.5708]
+    dl_tcllist [dl_tan $angles]
+    # → 0.0 1.0 -276243.8... (approximately)
+
+See also
+    dl_sin, dl_cos, dl_atan
+
