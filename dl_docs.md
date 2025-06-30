@@ -1085,31 +1085,52 @@ See also
 
 === dl_create (Creation) ===
 Synopsis
-    dl_create [value1 value2 ...]
+    dl_create <type> [value1 value2 ...]
 
 Brief
-    [WARNING: This command is non-functional and should not be used.]
-    It is intended to create a new DynList by inferring type from arguments,
-    but it consistently fails with a `bad datatype` error for all tested
-    inputs.
+    Creates a new dynamic list of a specified `type` with optional initial
+    values. This is the general-purpose list constructor and is generally
+    stricter about type matching than the specialized `dl_ilist`, `dl_flist`,
+    etc. commands.
 
-    Use the type-specific creation commands for reliable list creation:
-    • `dl_ilist` for integers
-    • `dl_flist` for floats
-    • `dl_slist` for strings
-    • `dl_llist` for lists of lists
+Inputs
+    • type ……… A string specifying the list's data type. Common types are:
+                 `long` (or `int`), `float`, `string`, `list`, `char`.
+    • valueN … Optional. A sequence of initial values for the list.
 
 Returns
-    • This command fails before a list can be returned.
+    • The name of a new DynList.
+
+Errors
+    • TCL_ERROR: `bad datatype` if the `type` string is invalid.
+    • TCL_ERROR if any provided value is incompatible with the specified type.
+
+Type-Specific Behavior
+    • `long` or `int`: Requires all values to be valid integers. Does not truncate floats.
+      `dl_create long 1 2.5` → `expected integer but got "2.5"`
+    • `float`: Accepts integers and floats, promoting integers to floats.
+      `dl_tcllist [dl_create float 1 2.5]` → `1.0 2.5`
+    • `string`: Accepts any value and converts it to its string representation.
+      `dl_tcllist [dl_create string 1 2.5 hi]` → `1 2.5 hi`
+    • `list`: Requires all values to be names of existing DynLists.
+      `dl_create list $l1 "foo"` → `dynlist "foo" not found`
+    • `char`: Requires all values to be valid integers (character codes). Does
+      not truncate floats.
+      `dl_create char 65 66.5` → `expected integer but got "66.5"`
 
 Example
-    # The following documented examples all fail:
-    # dl_create 1 2 3
-    # dl_create 1.0 2.5
-    # dl_create hello world
+    # Create an integer list (type 'long')
+    dl_tcllist [dl_create long 1 2 3]
+    # → 1 2 3
+
+    # Create a list of lists
+    set l1 [dl_ilist 1]; set l2 [dl_slist a b]
+    set lol [dl_create list $l1 $l2]
+    dl_tcllist [dl_lengths $lol]
+    # → 1 2
 
 See also
-    dl_ilist, dl_flist, dl_slist, dl_llist (Recommended alternatives)
+    dl_ilist, dl_flist, dl_slist, dl_llist, dl_datatype
 
 
 === dl_cumprod (Arithmetic / Accumulation) ===
@@ -2439,10 +2460,10 @@ Brief
     or a list and a scalar value.
 
 Inputs
-    • list_or_val1 … A numeric DynList or a scalar value.
-    • list_or_val2 … A numeric DynList or a scalar value.
-    • Constraints …… Inputs must be numeric and broadcastable (i.e., have
-                     the same length or one is a scalar).
+    • list_or_val1 … A DynList or a scalar value.
+    • list_or_val2 … A DynList or a scalar value.
+    • Constraints …… Inputs must be broadcastable (have the same length or
+                     one is a scalar).
 
 Returns
     • A new integer DynList of 0s (false) and 1s (true).
@@ -2465,7 +2486,7 @@ Example
     # → 1 0 1 0 1
 
 See also
-    dl_lt, dl_gte, dl_eq, dl_gtIndex
+    dl_lt, dl_lte, dl_eq, dl_noteq, dl_gtIndex
 
 === dl_gtIndex (Logical / Indexing) ===
 Synopsis
@@ -2476,9 +2497,9 @@ Brief
     list containing the 0-based indices where the result is true.
 
 Inputs
-    • list_or_val1 … A numeric DynList or a scalar value.
-    • list_or_val2 … A numeric DynList or a scalar value.
-    • Constraints …… Inputs must be numeric and broadcastable.
+    • list_or_val1 … A DynList or a scalar value.
+    • list_or_val2 … A DynList or a scalar value.
+    • Constraints …… Inputs must be broadcastable.
 
 Returns
     • A new integer DynList of 0-based indices where the comparison is true.
@@ -2502,7 +2523,7 @@ Example
     # → 0 2 4
 
 See also
-    dl_ltIndex, dl_gteIndex, dl_eqIndex, dl_gt
+    dl_gt, dl_ltIndex, dl_gteIndex, dl_eqIndex, dl_noteqIndex
 
 === dl_help (Introspection) ===
 Synopsis
@@ -2918,3 +2939,1021 @@ Example
 
 See also
     dl_datatype, dl_depth
+
+=== dl_last (Accessing Elements) ===
+Synopsis
+    dl_last <list_name>
+
+Brief
+    Returns the last element of a dynamic list. If the list is a list of
+    lists, it returns the name of the last sublist.
+
+Inputs
+    • list_name … The name of a DynList.
+
+Returns
+    • The last element of the list, or the name of the last sublist if it
+      is a list of lists.
+
+Errors
+    • TCL_ERROR if the list is not found.
+    • Note: The command should error if the list is empty, but it was found
+      to fail silently (produces no output and no TCL error).
+
+Example
+    # Get the last element of a string list
+    set myStrings [dl_slist apple banana cherry]
+    dl_last $myStrings
+    # → cherry
+
+    # Get the name of the last sublist and then its contents
+    set sub1 [dl_ilist 1 2]
+    set sub2 [dl_ilist 3 4]
+    set lol [dl_llist $sub1 $sub2]
+    set last_sublist [dl_last $lol]
+    dl_tcllist $last_sublist
+    # → 3 4
+
+See also
+    dl_first, dl_get, dl_pickone
+
+=== dl_lastPos (Indexing) ===
+Synopsis
+    dl_lastPos <list_name>
+
+Brief
+    [WARNING: This command is misnamed and does not find a position.]
+    It takes a list as input and returns a new integer list of the same
+    length. The new list contains a `1` at the last position (index -1)
+    and `0` for all other positions.
+
+Inputs
+    • list_name … The name of any existing DynList.
+
+Returns
+    • A new integer DynList of the same length as the input list. The last
+      element is `1`, and all preceding elements are `0`.
+
+Errors
+    • TCL_ERROR if the list is not found.
+    • Note: The documented behavior of finding a value at an index is
+      incorrect. The command does not accept a value to find.
+
+Example
+    set myStrings [dl_slist a b c d e]
+    dl_tcllist [dl_lastPos $myStrings]
+    # → 0 0 0 0 1
+
+    set myNums [dl_ilist 10 20 30]
+    dl_tcllist [dl_lastPos $myNums]
+    # → 0 0 1
+
+See also
+    dl_firstPos
+
+=== dl_last_index_list (Searching / Indexing) ===
+Synopsis
+    dl_last_index_list <source_dynlist_name> <search_values_dynlist_name> [end_index]
+
+Brief
+    [WARNING: This command does not exist.]
+    The documentation indicates this command should find the index of the
+    last element in a list that matches any value from a second list, but
+    it is not a valid command in the `essctrl` environment.
+
+See also
+    dl_first_index_list, dl_lastPos, dl_find, dl_oneof
+
+=== dl_length (Introspection) ===
+Synopsis
+    dl_length <list_name>
+
+Brief
+    Returns the number of elements in the top level of a dynamic list.
+
+Inputs
+    • list_name … The name of an existing DynList.
+
+Returns
+    • An integer representing the number of elements. If it is a list of
+      lists, it returns the count of sublists.
+
+Errors
+    • TCL_ERROR if the list is not found.
+
+Example
+    # Get the length of a simple list
+    set simpleList [dl_ilist 10 20 30 40]
+    dl_length $simpleList
+    # → 4
+
+    # Get the length of a list of lists
+    set sub1 [dl_slist a b]
+    set sub2 [dl_slist c d e]
+    set listOfLists [dl_llist $sub1 $sub2]
+    dl_length $listOfLists
+    # → 2
+
+See also
+    dl_depth, dl_llength
+
+=== dl_lengths (Introspection / List of Lists) ===
+Synopsis
+    dl_lengths <list_of_lists_name>
+
+Brief
+    Returns a new integer list containing the lengths of each sublist
+    within a list of lists.
+
+Inputs
+    • list_of_lists_name … The name of a DynList that is a list of lists.
+
+Returns
+    • A new integer DynList where each element is the length of the
+      corresponding sublist in the input list.
+
+Errors
+    • TCL_ERROR if the input list is not found.
+    • TCL_ERROR: `dl_lengths: bad operand` if the input is not a list of lists.
+
+Example
+    set subA [dl_ilist 1 2 3]
+    set subB [dl_slist x y]
+    set subC [dl_ilist 10]
+    set subD [dl_slist]
+    set lol [dl_llist $subA $subB $subC $subD]
+    dl_tcllist [dl_lengths $lol]
+    # → 3 2 1 0
+
+See also
+    dl_length, dl_depth
+
+=== dl_lgamma (Arithmetic / Special Functions) ===
+Synopsis
+    dl_lgamma <list> | dl_lgamma <number>
+
+Brief
+    Computes the element-wise natural logarithm of the absolute value of the
+    Gamma function, `log(|Γ(x)|)`. Returns a new list of floats.
+
+Inputs
+    • Type …………… DynList_or_Number
+    • Element types … numeric
+
+Returns
+    • A new float DynList.
+    • For non-positive integer inputs (0, -1, -2, ...), where the Gamma
+      function has poles, the command returns `Inf`.
+
+Errors
+    • TCL_ERROR if the input is not numeric or a list is not found.
+
+Example
+    # For a list of values
+    set values [dl_flist 0.5 1 2 3.5 -1.5]
+    dl_tcllist [dl_lgamma $values]
+    # → 0.572365 0.0 0.0 1.20097 0.860047
+
+    # For a single value
+    dl_tcllist [dl_lgamma 5]
+    # → 3.17805
+
+    # For a non-positive integer
+    dl_tcllist [dl_lgamma -2]
+    # → Inf
+
+See also
+    dl_exp, dl_log
+
+=== dl_llength (Introspection / List of Lists) ===
+Synopsis
+    dl_llength <list_of_lists_name>
+
+Brief
+    [WARNING: This command is not an alias for `dl_length`.]
+    It is an alias for `dl_lengths` and returns a new integer list containing
+    the lengths of each sublist within a list of lists.
+
+Inputs
+    • list_of_lists_name … The name of a DynList that is a list of lists.
+
+Returns
+    • A new integer DynList where each element is the length of the
+      corresponding sublist in the input list.
+
+Errors
+    • TCL_ERROR if the input list is not found.
+    • TCL_ERROR if the input is not a list of lists.
+
+Example
+    set subA [dl_ilist 1 2 3]
+    set subB [dl_slist x y]
+    set lol [dl_llist $subA $subB]
+    dl_tcllist [dl_llength $lol]
+    # → 3 2
+
+See also
+    dl_lengths, dl_length, dl_depth
+
+=== dl_llist (Creation / List of Lists) ===
+Synopsis
+    dl_llist [dynlist_name1 dynlist_name2 ...]
+
+Brief
+    Creates a new dynamic list designed to hold other dynamic lists as its
+    elements (a list of lists). It can be initialized with existing lists.
+
+Inputs
+    • dynlist_nameN … Optional. One or more names of existing DynLists to
+                      add to the new list of lists.
+
+Returns
+    • The name of a new DynList of type List.
+    • If called with no arguments, it creates an empty list of lists.
+
+Errors
+    • TCL_ERROR: `dynlist "..." not found` if any provided list name does
+      not exist.
+    • Note: Does not accept a Tcl list of list names, contrary to some
+      documentation.
+
+Example
+    # Create an empty list of lists
+    set lol1 [dl_llist]
+    dl_length $lol1
+    # → 0
+
+    # Create a list of lists from existing lists
+    set listA [dl_ilist 1 2]
+    set listB [dl_slist hello world]
+    set lol2 [dl_llist $listA $listB]
+    dl_tcllist [dl_lengths $lol2]
+    # → 2 2
+
+See also
+    dl_ilist, dl_flist, dl_slist, dl_append, dl_depth
+
+=== dl_local (Creation / Scoping) ===
+Synopsis
+    dl_local <new_list_name> <source_list_to_copy>
+
+Brief
+    Creates a new dynamic list that is local to the current Tcl procedure
+    (`proc`) scope. It creates the new list by copying an existing source
+    list. This command is essential for creating temporary, modifiable
+    lists inside `proc`s without affecting global lists.
+
+Inputs
+    • new_list_name ………… The string name for the new local list.
+    • source_list_to_copy … The name of an existing DynList to copy. This
+                              can be a temporary list created on the fly (e.g.,
+                              `[dl_ilist]`).
+
+Returns
+    • This command does not return a value. It creates the new list as a
+      side effect.
+
+Side Effects
+    • A new DynList with the given name is created in the local scope.
+
+Usage Notes
+    • This command is intended for use inside a Tcl `proc`. Lists created
+      with `dl_local` are generally not accessible from the global scope
+      after the `proc` finishes.
+    • To return a list from a `proc`, use `dl_return`.
+
+Example
+    # This proc finds the indices of given IDs within a shape list.
+    proc get_shape_indices { shape_list shape_ids } {
+        # Create a new empty integer list named "inds", local to this proc.
+        # It copies an empty temporary list created by [dl_ilist].
+        dl_local inds [dl_ilist]
+
+        # Iterate and append found indices to the local list.
+        foreach s [dl_tcllist $shape_ids] {
+            dl_append $inds [dl_find $shape_list $s]
+        }
+
+        # Return the populated local list.
+        dl_return $inds
+    }
+
+See also
+    dl_return, dl_create, dl_ilist, dl_flist, dl_slist
+
+=== dl_log (Arithmetic / Transcendental) ===
+Synopsis
+    dl_log <list> | dl_log <number>
+
+Brief
+    Computes the element-wise natural logarithm (ln) of a numeric list or
+    a single number. Returns a new list of floats.
+
+Inputs
+    • Type …………… DynList_or_Number
+    • Element types … numeric
+
+Returns
+    • A new float DynList.
+    • For an input of `0`, the result is `-Inf`.
+    • For negative inputs, the result is `NaN` (Not a Number).
+
+Errors
+    • TCL_ERROR if the input is not numeric or a list is not found.
+    • Note: The command does not produce a TCL error for out-of-domain
+      inputs (zero or negative numbers), contrary to some documentation.
+
+Example
+    # For a list of positive values
+    set values [dl_flist 1 2.71828 10 0.5]
+    dl_tcllist [dl_log $values]
+    # → 0.0 1.0 2.30259 -0.693147
+
+    # For out-of-domain values
+    dl_tcllist [dl_log [dl_flist 0 -5]]
+    # → -Inf NaN
+
+See also
+    dl_exp, dl_log10
+
+=== dl_log10 (Arithmetic / Transcendental) ===
+Synopsis
+    dl_log10 <list> | dl_log10 <number>
+
+Brief
+    Computes the element-wise base-10 logarithm of a numeric list or a
+    single number. Returns a new list of floats.
+
+Inputs
+    • Type …………… DynList_or_Number
+    • Element types … numeric
+
+Returns
+    • A new float DynList.
+    • For an input of `0`, the result is `-Inf`.
+    • For negative inputs, the result is `NaN` (Not a Number).
+
+Errors
+    • TCL_ERROR if the input is not numeric or a list is not found.
+    • Note: The command does not produce a TCL error for out-of-domain
+      inputs.
+
+Example
+    # For a list of values
+    set values [dl_flist 1 10 100 0.1]
+    dl_tcllist [dl_log10 $values]
+    # → 0.0 1.0 2.0 -1.0
+
+    # For out-of-domain values
+    dl_tcllist [dl_log10 [dl_flist 0 -10]]
+    # → -Inf NaN
+
+See also
+    dl_log, dl_exp
+
+=== dl_lt (Logical / Comparison) ===
+Synopsis
+    dl_lt <list_or_val1> <list_or_val2>
+
+Brief
+    Performs an element-wise less than (<) comparison between two lists or
+    a list and a scalar value. Returns a new list of 0s (false) and 1s (true).
+
+Inputs
+    • list_or_val1 … A DynList or a scalar value.
+    • list_or_val2 … A DynList or a scalar value.
+    • Constraints …… Inputs must be broadcastable (have the same length or
+                     one is a scalar).
+
+Returns
+    • A new integer DynList containing 0s and 1s.
+
+Errors
+    • TCL_ERROR: `dl_lt: unable to compare...` if lists have different lengths.
+    • TCL_ERROR if an input list name is not found.
+    • Note: Does not support chained comparisons (3+ arguments).
+
+Example
+    # List vs List
+    set l1 [dl_ilist 1 5 3 9 0]
+    set l2 [dl_ilist 2 5 1 8 2]
+    dl_tcllist [dl_lt $l1 $l2]
+    # → 1 0 0 0 1
+
+    # List vs Scalar
+    dl_tcllist [dl_lt $l1 3]
+    # → 1 0 0 0 1
+
+See also
+    dl_gt, dl_lte, dl_eq, dl_noteq, dl_ltIndex
+
+=== dl_ltIndex (Logical / Indexing) ===
+Synopsis
+    dl_ltIndex <list_or_val1> <list_or_val2>
+
+Brief
+    Performs an element-wise less than (<) comparison and returns a new
+    list containing the 0-based indices where the result is true.
+
+Inputs
+    • list_or_val1 … A DynList or a scalar value.
+    • list_or_val2 … A DynList or a scalar value.
+    • Constraints …… Inputs must be broadcastable.
+
+Returns
+    • A new integer DynList of 0-based indices where the comparison is true.
+
+Errors
+    • TCL_ERROR if lists have incompatible lengths.
+    • Note: Does not support chained comparisons (3+ arguments).
+
+Example
+    # List vs List
+    set l1 [dl_ilist 1 5 3 9 0]
+    set l2 [dl_ilist 2 5 1 8 2]
+    dl_tcllist [dl_ltIndex $l1 $l2]
+    # → 0 4
+
+    # List vs Scalar
+    dl_tcllist [dl_ltIndex $l1 3]
+    # → 0 4
+
+See also
+    dl_lt, dl_gtIndex, dl_lteIndex, dl_eqIndex
+
+=== dl_lte (Logical / Comparison) ===
+Synopsis
+    dl_lte <list_or_val1> <list_or_val2>
+
+Brief
+    Performs an element-wise less than or equal to (<=) comparison between
+    two lists or a list and a scalar value. Returns a new list of 0s and 1s.
+
+Inputs
+    • list_or_val1 … A DynList or a scalar value.
+    • list_or_val2 … A DynList or a scalar value.
+    • Constraints …… Inputs must be broadcastable.
+
+Returns
+    • A new integer DynList containing 0s and 1s.
+
+Errors
+    • TCL_ERROR if lists have incompatible lengths.
+    • Note: Does not support chained comparisons (3+ arguments).
+
+Example
+    # List vs List
+    set l1 [dl_ilist 1 5 3 8 0]
+    set l2 [dl_ilist 2 5 1 8 2]
+    dl_tcllist [dl_lte $l1 $l2]
+    # → 1 1 0 1 1
+
+    # List vs Scalar
+    dl_tcllist [dl_lte $l1 3]
+    # → 1 0 1 0 1
+
+See also
+    dl_lt, dl_gt, dl_gte, dl_eq
+
+=== dl_lteIndex (Logical / Indexing) ===
+Synopsis
+    dl_lteIndex <list_or_val1> <list_or_val2>
+
+Brief
+    Performs an element-wise less than or equal to (<=) comparison and
+    returns a new list containing the 0-based indices where the result is true.
+
+Inputs
+    • list_or_val1 … A DynList or a scalar value.
+    • list_or_val2 … A DynList or a scalar value.
+    • Constraints …… Inputs must be broadcastable.
+
+Returns
+    • A new integer DynList of 0-based indices where the comparison is true.
+
+Errors
+    • TCL_ERROR if lists have incompatible lengths.
+    • Note: Does not support chained comparisons (3+ arguments).
+
+Example
+    # List vs List
+    set l1 [dl_ilist 1 5 3 8 0]
+    set l2 [dl_ilist 2 5 1 8 2]
+    dl_tcllist [dl_lteIndex $l1 $l2]
+    # → 0 1 3 4
+
+    # List vs Scalar
+    dl_tcllist [dl_lteIndex $l1 3]
+    # → 0 2 4
+
+See also
+    dl_lte, dl_ltIndex, dl_gtIndex, dl_eqIndex
+
+=== dl_max (Reduction) ===
+Synopsis
+    dl_max <list_name>
+
+Brief
+    Returns the maximum value from a 1D numeric list.
+
+Inputs
+    • list_name … The name of a 1D numeric DynList.
+
+Returns
+    • A single numeric value representing the maximum element in the list.
+
+Errors
+    • TCL_ERROR if the list is not found or is not numeric.
+    • Note: The command fails silently (produces no output) if the list
+      is empty, contrary to some documentation that suggests it should error.
+
+Example
+    set myInts [dl_ilist 10 50 20 5]
+    dl_max $myInts
+    # → 50
+
+    set myFloats [dl_flist -1.0 2.5 -5.0 0.0]
+    dl_max $myFloats
+    # → 2.5
+
+See also
+    dl_min, dl_max_positions, dl_sum, dl_mean
+
+=== dl_max_positions (Reduction / Indexing) ===
+Synopsis
+    dl_max_positions <list_name>
+
+Brief
+    [WARNING: This command does not exist.]
+    The documentation indicates this command should return the indices of
+    all occurrences of the maximum value in a list, but it is not a valid
+    command in the `essctrl` environment.
+
+See also
+    dl_max, dl_min_positions, dl_eqIndex
+
+=== dl_mean (Reduction) ===
+Synopsis
+    dl_mean <list_name>
+
+Brief
+    Calculates the arithmetic mean (average) of the elements in a 1D
+    numeric list.
+
+Inputs
+    • list_name … The name of a 1D numeric DynList.
+
+Returns
+    • A single float value representing the arithmetic mean.
+    • Returns `0.0` if the input list is empty.
+
+Errors
+    • TCL_ERROR if the list is not found or is not numeric.
+    • Note: Does not produce an error for an empty list, contrary to some
+      documentation.
+
+Example
+    set myInts [dl_ilist 10 20 30 40 50]
+    dl_mean $myInts
+    # → 30.0
+
+    set myFloats [dl_flist 1.0 1.5 2.0 2.5 3.0]
+    dl_mean $myFloats
+    # → 2.0
+
+See also
+    dl_sum, dl_std, dl_var
+
+=== dl_mean_list (Reduction) ===
+Synopsis
+    dl_mean_list <list_name>
+
+Brief
+    [WARNING: This command does not exist.]
+    The documentation indicates this command should calculate the mean of a
+    list and return the result as a new single-element list, but it is not
+    a valid command in the `essctrl` environment.
+
+See also
+    dl_mean, dl_sum, dl_std
+
+=== dl_min (Reduction) ===
+Synopsis
+    dl_min <list_name>
+
+Brief
+    Returns the minimum value from a 1D numeric list.
+
+Inputs
+    • list_name … The name of a 1D numeric DynList.
+
+Returns
+    • A single numeric value representing the minimum element in the list.
+
+Errors
+    • TCL_ERROR if the list is not found or is not numeric.
+    • Note: Fails silently (produces no output) if the list is empty.
+
+Example
+    set myInts [dl_ilist 10 50 20 5 30]
+    dl_min $myInts
+    # → 5
+
+    set myFloats [dl_flist -1.0 2.5 -5.0 0.0]
+    dl_min $myFloats
+    # → -5.0
+
+See also
+    dl_max, dl_min_positions, dl_sum, dl_mean
+
+=== dl_min_positions (Reduction / Indexing) ===
+Synopsis
+    dl_min_positions <list_name>
+
+Brief
+    [WARNING: This command does not exist.]
+    The documentation indicates this command should return the indices of
+    all occurrences of the minimum value in a list, but it is not a valid
+    command in the `essctrl` environment.
+
+See also
+    dl_min, dl_max_positions, dl_eqIndex
+
+=== dl_mod (Arithmetic) ===
+Synopsis
+    dl_mod <dividend_list_or_val> <divisor_list_or_val>
+
+Brief
+    Computes the element-wise integer remainder of `x / y`. The result has
+    the same sign as the dividend (`x`).
+
+Inputs
+    • dividend … A numeric DynList or a scalar value.
+    • divisor …… A numeric DynList or a scalar value.
+    • Constraints … Inputs must be numeric and broadcastable. Divisor
+                    cannot be zero.
+
+Returns
+    • A new integer DynList containing the remainders.
+
+Errors
+    • TCL_ERROR if lists have incompatible lengths or if division by zero
+      is attempted.
+
+Example
+    # The sign of the result matches the sign of the dividend (the first list)
+    set l1 [dl_ilist 5 -5 5 -5]
+    set l2 [dl_ilist 3 3 -3 -3]
+    dl_tcllist [dl_mod $l1 $l2]
+    # → 2 -2 2 -2
+
+See also
+    dl_fmod, dl_div
+
+=== dl_mult (Arithmetic) ===
+Synopsis
+    dl_mult <list_or_val1> <list_or_val2> [<list_or_val3>...]
+
+Brief
+    Performs element-wise multiplication of two or more lists or numbers.
+
+Inputs
+    • Operands … Two or more numeric DynLists or scalar values.
+    • Constraints … Inputs must be numeric and broadcastable.
+
+Returns
+    • A new DynList containing the results.
+
+Errors
+    • TCL_ERROR if lists have incompatible lengths.
+
+Example
+    # List * List
+    set l1 [dl_ilist 1 2 3]
+    set l2 [dl_ilist 10 20 30]
+    dl_tcllist [dl_mult $l1 $l2]
+    # → 10 40 90
+
+    # Chained multiplication
+    dl_tcllist [dl_mult $l1 $l2 [dl_ilist 2 2 2]]
+    # → 20 80 180
+
+See also
+    dl_add, dl_sub, dl_div
+
+=== dl_negate (Arithmetic) ===
+Synopsis
+    dl_negate <list> | dl_negate <number>
+
+Brief
+    Computes the element-wise negation (changes sign) of a numeric list
+    or a single number. Returns a new list.
+
+Inputs
+    • Type …………… DynList_or_Number
+    • Element types … numeric
+
+Returns
+    • A new DynList containing the negated values.
+
+Errors
+    • TCL_ERROR if the input is not numeric.
+
+Example
+    set myList [dl_flist -2 0 3.5 -1.2]
+    dl_tcllist [dl_negate $myList]
+    # → 2.0 -0.0 -3.5 1.2
+
+    dl_tcllist [dl_negate 5]
+    # → -5
+
+See also
+    dl_abs, dl_sub
+
+=== dl_not (Logical) ===
+Synopsis
+    dl_not <list> | dl_not <number>
+
+Brief
+    Performs element-wise logical NOT on a numeric list or number. Non-zero
+    values are treated as true (result `0`), and zero is treated as false
+    (result `1`).
+
+Inputs
+    • Type …………… DynList_or_Number
+    • Element types … numeric
+
+Returns
+    • A new integer DynList containing 0s and 1s.
+
+Errors
+    • TCL_ERROR if the input is not numeric.
+
+Example
+    set l1 [dl_flist 1 0 -2.5 0.0 7]
+    dl_tcllist [dl_not $l1]
+    # → 0 1 0 1 0
+
+    # `not 0` is 1
+    dl_tcllist [dl_not 0]
+    # → 1
+
+    # `not non-zero` is 0
+    dl_tcllist [dl_not 100]
+    # → 0
+
+See also
+    dl_and, dl_or, dl_eq
+
+=== dl_noteq (Logical / Comparison) ===
+Synopsis
+    dl_noteq <list_or_val1> <list_or_val2>
+
+Brief
+    Performs an element-wise inequality (!=) comparison. Returns a new list
+    of 0s (false) and 1s (true).
+
+Inputs
+    • list_or_val1 … A DynList or a scalar value.
+    • list_or_val2 … A DynList or a scalar value.
+    • Constraints …… Inputs must be broadcastable and of compatible types.
+                     Numeric types (int, float) can be compared with each
+                     other. String lists can be compared with other string
+                     lists. Comparing numeric and string lists is not allowed.
+
+Returns
+    • A new integer DynList containing 0s and 1s.
+
+Errors
+    • TCL_ERROR: `dl_noteq: unable to compare...` if lists have incompatible
+      lengths or data types.
+    • Note: Does not support chained comparisons (3+ arguments).
+
+Example
+    # Integer list vs Float list
+    set l1 [dl_ilist 1 2 3]
+    set l2 [dl_flist 1.0 5.0 3.0]
+    dl_tcllist [dl_noteq $l1 $l2]
+    # → 0 1 0
+
+    # String list vs String list
+    set s1 [dl_slist a b c]
+    set s2 [dl_slist a d c]
+    dl_tcllist [dl_noteq $s1 $s2]
+    # → 0 1 0
+
+See also
+    dl_eq, dl_gt, dl_lt, dl_noteqIndex
+
+=== dl_noteqIndex (Logical / Comparison / Indexing) ===
+Synopsis
+    dl_noteqIndex <list_or_val1> <list_or_val2>
+
+Brief
+    Performs an element-wise inequality (!=) comparison and returns a new
+    list of 0-based indices where the result is true.
+
+Inputs
+    • list_or_val1 … A DynList or a scalar value.
+    • list_or_val2 … A DynList or a scalar value.
+    • Constraints …… Inputs must be broadcastable and of compatible types.
+                     Numeric types (int, float) can be compared with each
+                     other. String lists can be compared with other string
+                     lists.
+
+Returns
+    • A new integer DynList of 0-based indices where the comparison is true.
+
+Errors
+    • TCL_ERROR: `dl_noteqIndex: unable to compare...` if lists have
+      incompatible lengths or data types.
+    • Note: Does not support chained comparisons (3+ arguments).
+
+Example
+    # Integer list vs Float list
+    set l1 [dl_ilist 1 2 3]
+    set l2 [dl_flist 1.0 5.0 3.0]
+    dl_tcllist [dl_noteqIndex $l1 $l2]
+    # → 1
+
+    # String list vs String list
+    set s1 [dl_slist a b c]
+    set s2 [dl_slist a d c]
+    dl_tcllist [dl_noteqIndex $s1 $s2]
+    # → 1
+
+See also
+    dl_noteq, dl_eqIndex, dl_gtIndex, dl_ltIndex
+
+=== dl_oneof (Logical / Membership) ===
+Synopsis
+    dl_oneof <source_list> <allowed_values_list>
+
+Brief
+    Checks for each element in a source list if it is present in a list of
+    allowed values. Returns a new list of 0s (not found) and 1s (found).
+
+Inputs
+    • source_list ……… The DynList to check elements from.
+    • allowed_values_list … A DynList containing the set of allowed values.
+    • Constraints ……… Both lists must be of a compatible type (e.g., both
+                        numeric or both string).
+
+Returns
+    • A new integer DynList of the same length as the source list, containing
+      1s for matching elements and 0s for non-matching ones.
+
+Errors
+    • TCL_ERROR if either list is not found.
+    • TCL_ERROR if the lists are not of a compatible type.
+
+Example
+    # String membership
+    set src [dl_slist a b c d a e]
+    set allowed [dl_slist a d g]
+    dl_tcllist [dl_oneof $src $allowed]
+    # → 1 0 0 1 1 0
+
+    # Numeric membership
+    set nums_src [dl_ilist 10 20 30 40 10]
+    set nums_allowed [dl_ilist 10 30 60]
+    dl_tcllist [dl_oneof $nums_src $nums_allowed]
+    # → 1 0 1 0 1
+
+See also
+    dl_find, dl_eqIndex
+
+=== dl_ones (Creation) ===
+Synopsis
+    dl_ones <count>
+
+Brief
+    Creates a new integer list of a given `count`, with all elements
+    initialized to 1.
+
+Inputs
+    • count … The number of elements in the new list.
+
+Returns
+    • A new integer DynList.
+
+Errors
+    • TCL_ERROR if `count` is not a non-negative integer.
+    • Note: The optional `-type` flag mentioned in some documentation is
+      not supported. The command only creates integer lists.
+
+Example
+    dl_tcllist [dl_ones 5]
+    # → 1 1 1 1 1
+
+See also
+    dl_zeros, dl_fill, dl_create
+
+=== dl_or (Logical) ===
+Synopsis
+    dl_or <list_or_val1> <list_or_val2> [<list_or_val3>...]
+
+Brief
+    Performs an element-wise logical OR operation on two or more numeric
+    lists or numbers. Non-zero values are true (1), zero is false (0).
+
+Inputs
+    • Operands … Two or more numeric DynLists or scalar values.
+    • Constraints … Inputs must be numeric and broadcastable.
+
+Returns
+    • A new integer DynList containing 0s and 1s.
+
+Errors
+    • TCL_ERROR if lists have incompatible lengths or are not numeric.
+
+Example
+    set l1 [dl_ilist 1 0 1 0]
+    set l2 [dl_ilist 1 1 0 0]
+
+    # Two-list OR
+    dl_tcllist [dl_or $l1 $l2]
+    # → 1 1 1 0
+
+    # Chained OR
+    set l3 [dl_ilist 0 0 0 1]
+    dl_tcllist [dl_or $l1 $l2 $l3]
+    # → 1 1 1 1
+
+See also
+    dl_and, dl_not, dl_orIndex
+
+=== dl_orIndex (Logical / Indexing) ===
+Synopsis
+    dl_orIndex <list_or_val1> <list_or_val2>
+
+Brief
+    Performs an element-wise logical OR on two numeric lists/values and
+    returns a new list containing the 0-based indices where the result is true.
+
+Inputs
+    • list_or_val1 … A numeric DynList or a scalar value.
+    • list_or_val2 … A numeric DynList or a scalar value.
+    • Constraints …… Inputs must be numeric and broadcastable.
+
+Returns
+    • A new integer DynList of 0-based indices where the logical OR is true.
+
+Errors
+    • TCL_ERROR if lists have incompatible lengths or are not numeric.
+    • WARNING: The documented support for chained comparisons (3+ arguments)
+      is incorrect and will cause an `unable to compare` error. Only use
+      with two arguments.
+
+Example
+    set l1 [dl_ilist 1 0 1 0 0]
+    set l2 [dl_ilist 1 1 0 0 0]
+    dl_tcllist [dl_orIndex $l1 $l2]
+    # → 0 1 2
+
+See also
+    dl_or, dl_andIndex, dl_eqIndex
+
+=== dl_rename (List Management) ===
+Synopsis
+    dl_rename <old_name> <new_name>
+
+Brief
+    Renames an existing dynamic list.
+
+Inputs
+    • old_name … The current name of an existing DynList.
+    • new_name … The new string name for the list.
+
+Returns
+    • The `new_name` is returned on success.
+
+Side Effects
+    • The list is accessible via the `new_name` and no longer accessible
+      via the `old_name`.
+    • Any Tcl variables that held the `old_name` will now refer to a
+      non-existent list.
+
+Errors
+    • TCL_ERROR if the `old_name` does not correspond to an existing list.
+    • WARNING: If `new_name` is already in use by another list, this command
+      does NOT error. It silently overwrites and deletes the list that
+      previously had `new_name`.
+
+Example
+    # Create a list, its internal name is stored in the variable 'listA'
+    set listA [dl_ilist 1 2 3]
+
+    # Rename the list to have the literal name "my_renamed_list"
+    dl_rename $listA my_renamed_list
+
+    # Now, access the list by its new, literal name
+    dl_tcllist my_renamed_list
+    # → 1 2 3
+
+    # The old Tcl variable $listA is now a stale reference.
+    # The following command would fail:
+    # dl_exists $listA
+
+See also
+    dl_delete, dl_create
