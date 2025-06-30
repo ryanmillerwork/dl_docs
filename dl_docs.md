@@ -4802,3 +4802,637 @@ Example
 
 See also
     dl_parzen (also broken), dl_hist
+
+=== dl_sdf, dl_sdfLists, dl_sdfListsRecursive (Broken) ===
+Synopsis
+    dl_sdf <spike_times> <start> <end> <width> [<npts>]
+    dl_sdfLists <list_of_spike_times_lists> ...
+    dl_sdfListsRecursive <list_of_spike_times_lists> ...
+
+Brief
+    **Non-functional.** These commands are intended to compute a Spike Density Function (SDF) but appear to be broken.
+
+Details
+    When executed, these commands return a single, seemingly meaningless floating-point number instead of the expected list of numbers representing a density curve. The issue persists even with a large and dense list of input spike times. They do not compute a density function as documented or expected.
+
+Example
+    # Returns a single float, not a density curve.
+    essctrl -c "dl_tcllist [dl_sdf [dl_flist 0.1 0.5 1.2 2.5 3.8 4.2] 0 5 0.2 100]"
+
+=== dl_gte (Logical) ===
+Synopsis
+    dl_gte <list1> <list2>
+
+Brief
+    Performs an element-wise "greater than or equal to" comparison between two lists.
+
+Details
+    Returns a new binary list where each element is 1 if the corresponding element in `list1` is greater than or equal to the element in `list2`, and 0 otherwise. The input lists must be of the same length.
+
+Inputs
+    • Type …… DynList
+    • Length … 2
+    • Element types … numeric
+
+Returns
+    • Type …………… DynList (new object)
+    • Element type … long
+
+Errors
+    • TCL_ERROR if the lists have different lengths.
+
+Example
+    essctrl -c "dl_tcllist [dl_gte [dl_ilist 1 2 3] [dl_ilist 0 2 4]]"
+    # → 1 1 0
+
+See also
+    dl_gt, dl_lt, dl_lte, dl_eq, dl_noteq
+=== dl_gteIndex (Logical) ===
+Synopsis
+    dl_gteIndex <list1> <list2>
+
+Brief
+    Returns the indices of elements where the condition `list1 >= list2` is true.
+
+Details
+    Compares two lists element-wise and returns a new list containing the indices where the elements of `list1` are greater than or equal to the corresponding elements in `list2`. The input lists must be of the same length.
+
+Inputs
+    • Type …… DynList
+    • Length … 2
+    • Element types … numeric
+
+Returns
+    • Type …………… DynList (new object)
+    • Element type … long
+
+Errors
+    • TCL_ERROR if the lists have different lengths.
+
+Example
+    essctrl -c "dl_tcllist [dl_gteIndex [dl_ilist 1 2 3 4] [dl_ilist 0 2 2 5]]"
+    # → 0 1 2
+
+See also
+    dl_gt, dl_lt, dl_lte, dl_eq, dl_noteq, dl_gte 
+
+=== dl_pow (Arithmetic) ===
+Synopsis
+    dl_pow <base_list> <exponent_list>
+
+Brief
+    Computes element-wise exponentiation.
+
+Details
+    Raises each element of the `base_list` to the power of the corresponding element in the `exponent_list`. If either argument is a single number instead of a list, it is broadcast across the other list. The two lists must be of the same length if they are both lists. While the command usage suggests more than two lists are possible, testing reveals that any list beyond the second is ignored.
+
+Inputs
+    • Type …… DynList_or_Number
+    • Length … 2
+    • Element types … numeric
+
+Returns
+    • Type …………… DynList (new object)
+    • Element type … float
+
+Errors
+    • TCL_ERROR "unable to combine" if lists have mismatched lengths or contain non-numeric data.
+
+Example (List ^ Scalar)
+    essctrl -c "dl_tcllist [dl_pow [dl_flist 2 3 4] 2]"
+    # → 4.0 9.0 16.0
+
+Example (List ^ List)
+    essctrl -c "dl_tcllist [dl_pow [dl_ilist 2 3 4] [dl_ilist 3 2 1]]"
+    # → 8 9 4
+
+Example (Scalar ^ List)
+    essctrl -c "dl_tcllist [dl_pow 2 [dl_ilist 1 2 3]]"
+    # → 2 4 8
+
+See also
+    dl_log, dl_sqrt
+
+=== dl_prod (Arithmetic) ===
+Synopsis
+    dl_prod <list>
+
+Brief
+    Computes the product of all elements in a numeric list.
+
+Details
+    Multiplies all elements of the input list together and returns a single numeric value.
+
+Inputs
+    • Type …… DynList
+    • Length … 1
+    • Element types … numeric
+
+Returns
+    • Type …………… Number (single value)
+    • Element type … Matches the most precise element type in the list (e.g., float if any floats are present).
+
+Special Cases
+    • If the input list is empty, the command returns nothing.
+    • If the input list contains non-numeric values, the command returns nothing. This is a silent failure.
+
+Example (Integers)
+    essctrl -c "dl_prod [dl_ilist 1 2 3 4]"
+    # → 24
+
+Example (Floats)
+    essctrl -c "dl_prod [dl_flist 1.5 2.0 -3.0]"
+    # → -9.0
+
+Example (With Zero)
+    essctrl -c "dl_prod [dl_ilist 5 10 0 20]"
+    # → 0
+
+See also
+    dl_cumprod, dl_sum
+
+=== dl_put (List Modification) ===
+Synopsis
+    dl_put <list> <index> <new_value>
+
+Brief
+    Modifies a list in-place by replacing an element at a specific index.
+
+Details
+    Replaces the value at the given zero-based `index` in the input `list` with `new_value`. This is an in-place operation, meaning the original list variable is modified directly. The command also returns a reference to the modified list.
+
+    The data type of `new_value` must match the data type of the list. For example, you cannot `put` a float into an integer list.
+
+Inputs
+    • `list` …… The DynList to modify.
+    • `index` … The zero-based integer index of the element to replace.
+    • `new_value` … The new value to place at the index. Must match the list's type.
+
+Returns
+    • Type …… DynList (the same list that was input, now modified)
+
+Errors
+    • `TCL_ERROR: index out of range` if the index is negative or greater than or equal to the list length.
+    • `TCL_ERROR: expected <type> but got "<value>"` if `new_value` cannot be converted to the list's data type.
+
+Example (Successful Replacement)
+    # Note: We set a variable and check its value after the operation.
+    essctrl -c "set mylist [dl_ilist 10 20 30]; dl_put \$mylist 1 99; dl_tcllist \$mylist"
+    # → 10 99 30
+
+Example (Type Mismatch Error)
+    essctrl -c "set mylist [dl_ilist 10 20 30]; dl_put \$mylist 0 99.5"
+    # → expected integer but got "99.5"
+
+See also
+    dl_replace, dl_insert, dl_set
+
+=== dl_scan (Conversion / Parsing) ===
+Synopsis
+    dl_scan [-flag] <string_list>
+
+Brief
+    Parses a list of strings into a numeric list of a specified type.
+
+Details
+    Converts each string in the input `string_list` into a number. The conversion format is determined by an optional flag. If no flag is provided, it defaults to decimal (integer) conversion. This command is the general form of the more specific `dl_scanInt`, `dl_scanFloat`, etc., commands.
+
+Inputs
+    • `string_list` … A DynList with the `string` datatype.
+
+Flags
+    • `-d` … Decimal (integer). This is the default.
+    • `-f` … Float.
+    • `-x` … Hexadecimal.
+    • `-o` … Octal.
+    • `-b` … Binary.
+
+Returns
+    • Type …………… DynList (new object)
+    • Element type … long or float, depending on the flag used.
+
+Errors
+    • `TCL_ERROR: error scanning strings` if any string in the list cannot be parsed according to the specified format.
+
+Example (Default to Integer)
+    essctrl -c "dl_tcllist [dl_scan [dl_slist 123 -45 6.7]]"
+    # → 123 -45 6  (Note the truncation of 6.7)
+
+Example (Using -f for Floats)
+    essctrl -c "dl_tcllist [dl_scan -f [dl_slist 1.2 -3.4 0]]"
+    # → 1.2 -3.4 0.0
+
+Example (Using -x for Hex)
+    essctrl -c "dl_tcllist [dl_scan -x [dl_slist 10 ff a0]]"
+    # → 16 255 160
+
+See also
+    dl_scanInt, dl_scanFloat, dl_scanHex
+
+=== dl_select (Manipulation / Selection) ===
+Synopsis
+    dl_select <source_list> <binary_mask_list>
+
+Brief
+    Selects elements from a source list using a binary (0/1) mask.
+
+Details
+    Creates a new list containing elements from the `source_list` at positions where the `binary_mask_list` contains a `1`. Both lists must have the same length for predictable behavior.
+
+Inputs
+    • `source_list` …… The DynList to select elements from.
+    • `binary_mask_list` … An integer DynList of the same length, containing only 0s and 1s.
+
+Returns
+    • A new DynList containing only the selected elements.
+
+Errors
+    • `TCL_ERROR: unable to select elements...` if the mask list contains values other than 0 or 1.
+    • **WARNING:** The command exhibits buggy and unpredictable behavior if the source list and mask list do not have the same length. It may not produce a TCL_ERROR, but the results will be incorrect. Always ensure lists are the same size.
+
+Example (Correct Usage)
+    set items [dl_slist a b c d e]
+    set mask [dl_ilist 1 0 1 0 1]
+    dl_tcllist [dl_select $items $mask]
+    # → a c e
+
+Example (Incorrect Usage - Mismatched Length)
+    # The mask is shorter than the source list.
+    # The output is unpredictable and should not be relied upon.
+    dl_tcllist [dl_select [dl_slist a b c] [dl_ilist 1 0]]
+    # → a c (Incorrect and buggy output)
+
+See also
+    dl_choose, dl_get, dl_eqIndex
+
+=== dl_series (Creation / Sequence Generation) ===
+Synopsis
+    dl_series <start> <stop> [step]
+
+Brief
+    Creates a new list of numbers from `start` to `stop` (inclusive).
+
+Details
+    Generates a sequence of numbers starting from `start`, incrementing by
+    `step`, up to and including `stop`. This differs from `dl_fromto`, which has an exclusive stop value.
+
+Inputs
+    • start … The starting numeric value.
+    • stop …… The inclusive ending numeric value.
+    • step …… Optional numeric increment (default is 1 or -1 depending
+              on the direction from start to stop).
+
+Returns
+    • A new numeric DynList. The type is float if any argument is a float.
+
+Errors
+    • `TCL_ERROR: unable to create series` if the `step` is 0 or has the wrong sign.
+
+Example
+    # Integer sequence, stop is included
+    essctrl -c "dl_tcllist [dl_series 1 5]"
+    # → 1 2 3 4 5
+
+    # Float sequence with a step
+    essctrl -c "dl_tcllist [dl_series 0 10 2.5]"
+    # → 0.0 2.5 5.0 7.5 10.0
+
+    # Negative step
+    essctrl -c "dl_tcllist [dl_series 5 1]"
+    # → 5 4 3 2 1
+
+See also
+    dl_fromto, dl_ilist, dl_flist
+
+=== dl_set (Memory Management / Naming) ===
+Synopsis
+    dl_set <new_name> <list_to_rename>
+
+Brief
+    Assigns a permanent name to a dynamic list, effectively renaming it.
+
+Details
+    This command renames the `<list_to_rename>` to the string provided as `<new_name>`. The original name of the list (e.g., a temporary name like `%list0`) is deleted.
+
+    **WARNING:** If a list with `<new_name>` already exists, it will be silently deleted and replaced. This can lead to data loss if not used carefully.
+
+Inputs
+    • `new_name` ………… A string for the list's new, permanent name.
+    • `list_to_rename` … The name of an existing DynList.
+
+Returns
+    • The new name of the list.
+
+Side Effects
+    • The source list is renamed. Its old name becomes invalid.
+    • If the target name already exists, the list at that name is deleted.
+
+Example (Renaming a temporary list)
+    # Create a temporary list, give it a permanent name, and check that it exists
+    essctrl -c "dl_set my_list [dl_ilist 1 2 3]; dl_tcllist my_list"
+    # → 1 2 3
+
+Example (Overwriting an existing list)
+    essctrl -c "set first [dl_ilist 10 20]; set second [dl_slist a b c]; dl_set \$first \$second; dl_tcllist \$first"
+    # The original integer list at 'first' is destroyed.
+    # → a b c
+
+See also
+    dl_create, dl_delete, dl_local
+
+=== dl_setFormat (Introspection / Formatting) ===
+Synopsis
+    dl_setFormat <datatype> <format_string>
+
+Brief
+    Sets the default print format for a specified data type.
+
+Details
+    This command globally changes how DynLists of a given `datatype` are displayed by commands like `dl_dump` or when returned from the `essctrl` prompt. The format is specified using a C-style format string (e.g., `%d`, `%f`, `%s`). This setting persists for the lifetime of the `essctrl` session or until it is changed again.
+
+Inputs
+    • `datatype` …… A string for the data type to affect. Common types are `long`, `float`, `string`.
+    • `format_string` … A string that specifies the print format, such as `"%d"` for integers or `"%8.3f"` for floats.
+
+Returns
+    • This command does not return a value.
+
+Side Effects
+    • The default print format for the specified data type is changed globally.
+
+Example (Formatting Integers)
+    # Set integer format to be zero-padded to 5 digits
+    essctrl -c "dl_setFormat long %05d; dl_dump [dl_ilist 1 23 456]"
+    # Output:
+    # 00001
+    # 00023
+    # 00456
+
+Example (Formatting Floats)
+    # Set float format to show 2 decimal places
+    essctrl -c "dl_setFormat float %.2f; dl_dump [dl_flist 1.2345 6.7 8]"
+    # Output:
+    # 1.23
+    # 6.70
+    # 8.00
+
+Example (Resetting a Format)
+    # Reset float format back to the default
+    essctrl -c "dl_setFormat float %f"
+
+See also
+    dl_dump, dl_datatype
+
+=== dl_shift (Manipulation / Permutation) ===
+Synopsis
+    dl_shift <list> [shift_amount]
+
+Brief
+    Shifts elements of a list to the left or right. A positive shift moves
+    elements to the right, and a negative shift moves them to the left.
+    Elements shifted off the ends are lost.
+
+Inputs
+    • list …… The DynList to shift.
+    • shift_amount … An optional integer specifying the number of positions
+                     to shift. Default is 1.
+
+Returns
+    • A new DynList with the shifted elements.
+
+Errors
+    • TCL_ERROR if the list is not found or if `shift_amount` is not an integer.
+
+Example
+    set letters [dl_slist a b c d e]
+
+    # Default shift of 1
+    dl_tcllist [dl_shift $letters]
+    # → e a b c d
+
+    # Shift of 2
+    dl_tcllist [dl_shift $letters 2]
+    # → d e a b c
+
+    # Shift of -1
+    dl_tcllist [dl_shift $letters -1]
+    # → b c d e a
+
+See also
+    dl_cycle, dl_permute, dl_reverse
+
+    # Shift of -1
+    dl_tcllist [dl_shift $letters -1]
+    # → b c d e a
+
+See also
+    dl_cycle, dl_permute, dl_reverse
+
+=== dl_shiftcycle (Manipulation / Permutation) ===
+Synopsis
+    dl_shiftcycle <list> [shift_amount]
+
+Brief
+    [WARNING: This command does not exist.]
+    This command is listed in some documentation but is not a valid command
+    in the `essctrl` environment. Its name suggests it would be an alias for
+    either `dl_shift` or `dl_cycle`.
+
+See also
+    dl_shift, dl_cycle
+
+=== dl_short (Conversion) ===
+Synopsis
+    dl_short <source_list>
+
+Brief
+    Converts the elements of a source list to `short` (16-bit signed integer)
+    type, returning a new `short` DynList.
+
+Details
+    This command truncates floats and wraps values that are outside the
+    range of a 16-bit signed integer ([-32768, 32767]).
+
+    [WARNING: This command has a critical bug.] If the source list contains
+    non-numeric strings, the command does not fail. Instead, it silently
+    converts these strings to `0`, which can lead to data corruption.
+
+Inputs
+    • `source_list` … A numeric DynList or a Tcl list of numeric values.
+
+Returns
+    • A new DynList with the `short` datatype.
+
+Errors & Bugs
+    • The optional `[tclvar]` argument is non-functional and is ignored.
+    • BUG: Non-numeric strings are silently converted to `0`.
+
+Example (Correct Usage with Wrapping)
+    # 32768 wraps around to -32768
+    essctrl -c "dl_tcllist [dl_short [dl_ilist 1 32767 32768]]"
+    # → 1 32767 -32768
+
+Example (Buggy Behavior)
+    # Non-numeric strings are silently converted to 0
+    essctrl -c "dl_tcllist [dl_short [dl_slist "hello" "123" "world"]]"
+    # → 0 123 0
+
+See also
+    dl_int, dl_float, dl_char
+
+=== dl_sign (Arithmetic) ===
+Synopsis
+    dl_sign <list> | dl_sign <number>
+
+Brief
+    Computes the element-wise sign of a numeric list or a single number.
+    Returns a new list of 1s, 0s, and -1s.
+
+Inputs
+    • Type …………… DynList_or_Number
+    • Length ……… 1
+    • Element types … numeric
+
+Returns
+    • Type …………… DynList (new object)
+    • Element type … integer
+
+Errors
+    • TCL_ERROR if the input list is not numeric.
+
+Example
+    # Get the sign for each element in a list
+    set values [dl_flist 10 -5.5 0 -0.0]
+    dl_tcllist [dl_sign $values]
+    # → 1.0 -1.0 0.0 0.0
+
+    # Get the sign of a single number
+    dl_tcllist [dl_sign 5]
+    # → 1
+
+    # Get the sign of a negative number
+    dl_tcllist [dl_sign -7]
+    # → -1
+
+See also
+    dl_abs, dl_negate
+
+=== dl_shuffle (Manipulation / Random) ===
+Synopsis
+    dl_shuffle <list>
+
+Brief
+    Creates a new list by randomly shuffling the elements of a source list.
+
+Details
+    This command performs a random permutation of the elements in the input
+    list and returns a new list with the shuffled elements. The original
+    list is not modified.
+
+Inputs
+    • `list` … The DynList to shuffle.
+
+Returns
+    • A new DynList of the same type and length as the source list, with its
+      elements in a random order.
+
+Errors
+    • `TCL_ERROR: dynlist "..." not found` if the input list does not exist.
+
+Example
+    # The output will be a random permutation of the input.
+    essctrl -c "dl_tcllist [dl_shuffle [dl_slist a b c d e]]"
+    # → c a e b d (for example)
+
+See also
+    dl_permute, dl_sort, dl_reverse, dl_irand
+
+=== dl_sin (Arithmetic / Trigonometric) ===
+Synopsis
+    dl_sin <list_or_number>
+
+Brief
+    Computes the element-wise sine of a list or a single number.
+
+Details
+    Calculates the sine for each element in a numeric list. Input values are
+    assumed to be in radians. Returns a new list of floats.
+
+Inputs
+    • `list_or_number` … A numeric DynList or a single number. The values are
+                         treated as angles in radians.
+
+Returns
+    • A new float DynList containing the sine of each input value.
+
+Errors
+    • `TCL_ERROR: dl_sin: invalid list operand` if the list is not numeric.
+
+Example
+    # Angles for 0, PI/2, and PI
+    set angles [dl_flist 0 1.5708 3.14159]
+    dl_tcllist [dl_sin $angles]
+    # → 0.0 1.0 2.5e-6 (approximately)
+
+See also
+    dl_cos, dl_tan, dl_asin
+
+=== dl_sinh (Arithmetic / Hyperbolic) ===
+Synopsis
+    dl_sinh <list_or_number>
+
+Brief
+    Computes the element-wise hyperbolic sine of a list or a single number.
+
+Details
+    Calculates the hyperbolic sine for each element in a numeric list.
+    Returns a new list of floats.
+
+Inputs
+    • `list_or_number` … A numeric DynList or a single number.
+
+Returns
+    • A new float DynList containing the hyperbolic sine of each input value.
+
+Errors
+    • `TCL_ERROR: dl_sinh: invalid list operand` if the list is not numeric.
+
+Example
+    set values [dl_flist 0 1 -1 2]
+    dl_tcllist [dl_sinh $values]
+    # → 0.0 1.1752 -1.1752 3.6268 (approximately)
+
+See also
+    dl_cosh, dl_tanh
+
+=== dl_slist (Creation) ===
+Synopsis
+    dl_slist [value1 value2 ...]
+
+Brief
+    Creates a new dynamic list of type `string`.
+
+Details
+    This command creates a new string DynList, initializing it with the
+    provided arguments. Each argument becomes an element in the list. To
+    include spaces within a single element, enclose the argument in quotes.
+
+Inputs
+    • `valueN` … Optional. A sequence of initial values for the list.
+
+Returns
+    • The name of a new string DynList.
+    • If called with no arguments, it creates an empty string list.
+
+Example
+    # Create a list of strings
+    essctrl -c 'dl_tcllist [dl_slist alpha beta "gamma delta"]'
+    # → alpha beta {gamma delta}
+
+    # Create an empty string list
+    essctrl -c "dl_length [dl_slist]"
+    # → 0
+
+See also
+    dl_create, dl_ilist, dl_flist, dl_llist
+
