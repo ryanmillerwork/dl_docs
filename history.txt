@@ -1,1 +1,1 @@
-dl_last
+dl_tcllist [dl_zrand 5]

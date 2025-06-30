@@ -5827,7 +5827,6 @@ Brief
     This command is found in some documentation but is not a valid command
     in the `essctrl` environment.
 
-
 === dl_tan (Arithmetic / Trigonometric) ===
 Synopsis
     dl_tan <list> | dl_tan <number_in_radians>
@@ -5855,3 +5854,609 @@ Example
 See also
     dl_sin, dl_cos, dl_atan
 
+=== dl_tanh (Arithmetic / Hyperbolic) ===
+Synopsis
+    dl_tanh <list_or_number>
+
+Brief
+    Computes the element-wise hyperbolic tangent of a list or a single number.
+
+Details
+    Calculates the hyperbolic tangent for each element in a numeric list.
+    Returns a new list of floats. The output values are always in the
+    range [-1.0, 1.0].
+
+Inputs
+    • `list_or_number` … A numeric DynList or a single number.
+
+Returns
+    • A new float DynList containing the hyperbolic tangent of each input value.
+
+Errors
+    • `TCL_ERROR: dl_tanh: invalid list operand` if the list is not numeric.
+
+Example
+    set values [dl_flist 0 1 -1 2.5]
+    dl_tcllist [dl_tanh $values]
+    # → 0.0 0.76159 -0.76159 0.98661
+
+See also
+    dl_cosh, dl_sinh
+
+=== dl_tcllist (Introspection / Debugging) ===
+Synopsis
+    dl_tcllist <list_name>
+
+Brief
+    Converts a dynamic list into a human-readable Tcl list string. This is
+    the primary command for viewing the contents of a list.
+
+Details
+    Returns a string representation of the list's contents. For simple lists,
+    this is a space-delimited string of the elements. For lists of lists,
+    each sublist is enclosed in curly braces `{}`. This command is essential
+    for debugging and is the counterpart to Tcl's `puts` command, which does
+    not work in the `essctrl` environment for viewing list values.
+
+Inputs
+    • `list_name` … The name of an existing DynList.
+
+Returns
+    • A string representing the contents of the list.
+
+Errors
+    • `TCL_ERROR: dynlist "..." not found` if the list does not exist.
+    • NOTE: If more than one argument is provided, the command appears to
+      process only the first argument and silently ignores the rest.
+
+Example (Simple List)
+    # View the contents of a simple float list
+    essctrl -c "dl_tcllist [dl_flist 1.1 2.2 3.3]"
+    # → 1.1 2.2 3.3
+
+Example (List of Lists)
+    # View the contents of a nested list
+    essctrl -c "set l1 [dl_ilist 1 2]; set l2 [dl_slist a b]; set lol [dl_llist \\$l1 \\$l2]; dl_tcllist \\$lol"
+    # → {1 2} {a b}
+
+See also
+    dl_dump, dl_length
+
+=== dl_tempname (Creation) ===
+Synopsis
+    dl_tempname
+
+Brief
+    [WARNING: This command does not exist.]
+    The documentation indicates this command should generate a unique name
+    for a temporary list, but it is not a valid command in the `essctrl`
+    environment.
+
+=== dl_transpose (Manipulation / Restructuring) ===
+Synopsis
+    dl_transpose <list_of_lists_name>
+
+Brief
+    Transposes a 2D list (a list of lists), swapping its rows and columns.
+
+Details
+    Creates a new list of lists where the first sublist contains the first
+    element of each of the original sublists, the second sublist contains
+    the second element, and so on.
+
+    If the sublists have different lengths, the command will pad the shorter
+    rows with `0` (for numeric lists) or empty strings (for string lists)
+    to make the matrix rectangular before transposing.
+
+Inputs
+    • `list_of_lists_name` … The name of a DynList that is a list of lists.
+    • Constraints …… The list must not be empty. All sublists must be of
+                     the same data type (e.g., all integer lists or all
+                     string lists).
+
+Returns
+    • A new DynList containing the transposed matrix.
+    • Returns an empty list if the input list contains only empty sublists.
+
+Errors
+    • `TCL_ERROR: dl_transpose: bad operand ...` if the input is not a list
+      of lists, if the top-level list is empty, or if its sublists are
+      not all of the same data type.
+
+Example (Standard Transpose)
+    # Transpose a 2x2 integer matrix
+    set l1 [dl_ilist 1 2]
+    set l2 [dl_ilist 3 4]
+    set lol [dl_llist $l1 $l2]
+    # lol is {{1 2} {3 4}}
+    dl_tcllist [dl_transpose $lol]
+    # → {1 3} {2 4}
+
+Example (Jagged List Transpose)
+    # The shorter row is padded with an empty string {}
+    set l1 [dl_slist a b c]
+    set l2 [dl_slist d e]
+    set lol [dl_llist $l1 $l2]
+    # lol is {{a b c} {d e}}
+    dl_tcllist [dl_transpose $lol]
+    # → {a d} {b e} {c {}}
+
+Example (Error on Mixed Sublist Types)
+    # This command fails because sublists have different types.
+    # set l1 [dl_ilist 1 2]; set l2 [dl_slist a b]
+    # set lol [dl_llist $l1 $l2]
+    # dl_transpose $lol
+    # → dl_transpose: bad operand ...
+
+See also
+    dl_pack, dl_collapse, dl_dumpMatrixInCols
+
+=== dl_uchar (Conversion / Broken) ===
+Synopsis
+    dl_uchar <source_list>
+
+Brief
+    [WARNING: This command is broken and misnamed.]
+    It is intended to convert a list to `unsigned char` type, but it behaves
+    exactly like `dl_char` (signed char), incorrectly handling values over 127.
+    It also fails to error on non-numeric input.
+
+Details
+    This command attempts to convert a source list to a character (byte)
+    list. However, it implements a *signed* character conversion, causing
+    values from 128-255 to wrap around to negative numbers.
+
+    Furthermore, it has a critical bug where non-numeric strings in the
+    source list do not cause an error. Instead, they are silently converted
+    to `0`, which can lead to data corruption.
+
+Inputs
+    • `source_list` … A numeric DynList or a Tcl list of numeric values.
+
+Returns
+    • A new `char` DynList (not `unsigned char`).
+
+Errors & Bugs
+    • **Misnamed:** The command performs a signed, not unsigned, conversion.
+    • **Bug:** Non-numeric strings are silently converted to `0`.
+    • The optional `[tclvar]` argument is non-functional.
+
+Example (Incorrect Behavior)
+    # Values over 127 wrap to negative numbers.
+    essctrl -c "dl_tcllist [dl_uchar [dl_ilist 127 128 255]]"
+    # → 127 -128 -1
+
+Example (Buggy Behavior)
+    # Non-numeric strings are silently converted to 0.
+    essctrl -c "dl_tcllist [dl_uchar [dl_slist "A" "123" "B"]]"
+    # → 0 123 0
+
+See also
+    dl_char, dl_clist, dl_int
+
+=== dl_ufloat (Conversion / Broken) ===
+Synopsis
+    dl_ufloat <source_list>
+
+Brief
+    [WARNING: This command is redundant and buggy.]
+    It appears to be an alias for `dl_float` and does not implement any
+    unsigned logic. It also fails to error on non-numeric input.
+
+Details
+    This command converts a source list to a `float` list. The "u" (for
+    unsigned) in the name is misleading, as the command behaves identically
+    to `dl_float` and correctly handles negative values.
+
+    It has a critical bug where non-numeric strings in the source list do
+    not cause an error. Instead, they are silently converted to `0.0`,
+    which can lead to data corruption.
+
+Inputs
+    • `source_list` … A numeric DynList or a Tcl list of numeric values.
+
+Returns
+    • A new `float` DynList.
+
+Errors & Bugs
+    • **Redundant:** The command is functionally identical to `dl_float`.
+    • **Bug:** Non-numeric strings are silently converted to `0.0`.
+    • The optional `[tclvar]` argument is non-functional.
+
+Example
+    # It behaves just like dl_float
+    essctrl -c "dl_tcllist [dl_ufloat [dl_flist 1.5 -2.5 0]]"
+    # → 1.5 -2.5 0.0
+
+Example (Buggy Behavior)
+    # Non-numeric strings are silently converted to 0.0
+    essctrl -c 'dl_tcllist [dl_ufloat [dl_slist "A" "123.4" "B"]]'
+    # → 0.0 123.4 0.0
+
+See also
+    dl_float, dl_int
+
+=== dl_uint (Conversion / Broken) ===
+Synopsis
+    dl_uint <source_list>
+
+Brief
+    [WARNING: This command is redundant, misnamed, and buggy.]
+    It is an alias for `dl_int` and does not implement any unsigned logic.
+    It also fails to error on non-numeric input.
+
+Details
+    This command converts a source list to an `integer` list. The "u" (for
+    unsigned) in the name is misleading, as the command is implemented by
+    calling the exact same internal function as `dl_int`, and it correctly
+    handles negative values.
+
+    Source code analysis confirms that `dl_uint` is a wrapper that directly
+    calls the signed integer conversion function.
+
+    It has a critical bug where non-numeric strings in the source list do
+    not cause an error. Instead, they are silently converted to `0`, which
+    can lead to data corruption.
+
+Inputs
+    • `source_list` … A numeric DynList or a Tcl list of numeric values.
+
+Returns
+    • A new `long` (integer) DynList.
+
+Errors & Bugs
+    • **Redundant:** The command is functionally identical to `dl_int`.
+    • **Bug:** Non-numeric strings are silently converted to `0`.
+    • The optional `[tclvar]` argument is non-functional.
+
+Example
+    # It behaves just like dl_int, truncating floats
+    essctrl -c "dl_tcllist [dl_uint [dl_flist 1.5 -2.5 0]]"
+    # → 1 -2 0
+
+Example (Buggy Behavior)
+    # Non-numeric strings are silently converted to 0
+    essctrl -c 'dl_tcllist [dl_uint [dl_slist "A" "123" "B"]]'
+    # → 0 123 0
+
+See also
+    dl_int, dl_float
+
+=== dl_unique (Manipulation / Set Operations) ===
+Synopsis
+    dl_unique <list>
+
+Brief
+    Returns a new list containing the unique elements of the source list,
+    sorted in ascending order.
+
+Details
+    This command finds all unique values in a list and returns a new list
+    containing those values. A critical side effect is that the returned
+    list is always sorted.
+
+Inputs
+    • `list` … A DynList to process. Can be numeric or string.
+
+Returns
+    • A new, sorted list of the same type, containing only the unique elements.
+
+Errors
+    • `TCL_ERROR: dynlist "..." not found` if the input list does not exist.
+
+Example
+    # Get the unique, sorted elements from an integer list
+    essctrl -c 'dl_tcllist [dl_unique [dl_ilist 10 20 10 30 20 10]]'
+    # → 10 20 30
+
+    # Get the unique, sorted elements from a string list
+    essctrl -c 'dl_tcllist [dl_unique [dl_slist c a b c a d]]'
+    # → a b c d
+
+See also
+    dl_sort, dl_rank, dl_countOccurences
+
+=== dl_unpack (Manipulation / Restructuring) ===
+Synopsis
+    dl_unpack <packed_list_name>
+
+Brief
+    Unpacks a list that was previously packed by `dl_pack`, restoring it to
+    its original form.
+
+Details
+    This command is the counterpart to `dl_pack`. It takes a special packed
+    list (which is a single-element list containing a string) and
+    reconstructs the original list from that string.
+
+Inputs
+    • `packed_list_name` … The name of a DynList previously created by `dl_pack`.
+
+Returns
+    • A new DynList identical to the one that was originally packed.
+
+Errors
+    • `dl_unpack: bad operand (...)` if the input list was not created by `dl_pack`.
+
+Example
+    set mylist [dl_slist a b c]
+    # pack the list into a single string
+    set packed [dl_pack $mylist]
+    # now unpack it to get the original list back
+    dl_tcllist [dl_unpack $packed]
+    # → a b c
+
+See also
+    dl_pack, dl_collapse, dl_toString
+
+=== dl_urand (Creation / Random) ===
+Synopsis
+    dl_urand <size>
+
+Brief
+    Creates a new float list of a specified size containing uniformly
+    distributed random numbers between 0.0 and 1.0.
+
+Details
+    Generates a list of floating-point numbers. The argument `size`
+    determines the length of the new list. If a floating-point number is
+    provided for the size, it will be silently truncated to an integer.
+
+Inputs
+    • `size` … A non-negative integer specifying the number of elements to create.
+
+Returns
+    • A new float DynList of the specified size.
+
+Errors
+    • `dl_urand: size must be nonneg` if the size is a negative number.
+
+Example
+    # Create a list with 4 random floats
+    essctrl -c 'dl_tcllist [dl_urand 4]'
+    # → 0.905792 0.126987 0.913376 0.632359 (values will vary)
+
+    # A float size is truncated
+    essctrl -c 'dl_tcllist [dl_urand 2.9]'
+    # → 0.097542 0.849122 (values will vary)
+
+See also
+    dl_zrand, dl_randchoose, dl_randfill, dl_shuffle, dl_create
+
+=== dl_ushort (Conversion / Broken) ===
+Synopsis
+    dl_ushort <source_list>
+
+Brief
+    [WARNING: This command is redundant, misnamed, and buggy.]
+    It is intended to convert a list to `unsigned short`, but it behaves
+    like `dl_short` (signed short) and fails to error on non-numeric input.
+
+Details
+    This command attempts to convert a source list to a short integer list.
+    However, it implements a *signed* conversion, causing values greater
+    than 32767 to wrap around into negative numbers.
+
+    Source code analysis confirms that `dl_ushort` is mapped to the same
+    buggy conversion function as the other `dl_u*` commands. It also has
+    the critical bug where non-numeric string elements are silently
+    converted to `0` instead of raising an error.
+
+Inputs
+    • `source_list` … A DynList to convert.
+
+Returns
+    • A new list where elements are converted (incorrectly) to signed shorts.
+
+Errors
+    • None. Fails to error on invalid input.
+
+Example (Buggy Behavior)
+    # A value that should be valid for an unsigned short wraps around
+    essctrl -c 'dl_tcllist [dl_ushort [dl_ilist 40000]]'
+    # → -25536
+
+    # Non-numeric strings are silently converted to 0
+    essctrl -c 'dl_tcllist [dl_ushort [dl_slist "A" "123" "B"]]'
+    # → 0 123 0
+
+See also
+    dl_short, dl_int
+
+=== dl_var (Statistics / Broken) ===
+Synopsis
+    dl_var <list>
+
+Brief
+    [WARNING: This command is buggy.]
+    Calculates the sample variance of a numeric list. It fails to error on
+    non-numeric or empty lists.
+
+Details
+    This command computes the sample variance of the elements in a list,
+    which is a measure of their dispersion. It returns a single floating-point
+    number. It incorrectly returns `0.0` for empty lists and non-numeric
+    lists instead of raising an error.
+
+    Note: This command calculates the *sample* variance (denominator N-1), not
+    the population variance (denominator N).
+
+Inputs
+    • `list` … A numeric DynList.
+
+Returns
+    • A single float value representing the sample variance.
+
+Errors
+    • None. Fails to error on invalid input.
+
+Example
+    # Calculate the sample variance of a simple list
+    essctrl -c 'dl_var [dl_ilist 1 2 3 4 5]'
+    # → 2.5
+
+Example (Buggy Behavior)
+    # An empty list should error but returns 0.0
+    essctrl -c 'dl_var [dl_ilist]'
+    # → 0.0
+
+    # A list of strings should error but returns 0.0
+    essctrl -c 'dl_var [dl_slist a b c]'
+    # → 0.0
+
+See also
+    dl_std, dl_mean
+
+=== dl_write (I/O / Broken) ===
+Synopsis
+    dl_write <list> <filename>
+
+Brief
+    [WARNING: This command is buggy.]
+    Writes the raw, binary contents of a list to a file. It does not work
+    correctly with relative paths in the `essctrl` environment.
+
+Details
+    This command dumps the in-memory representation of a list's data directly
+    to a file. It does not perform any text conversion, so the output is a
+    binary file.
+
+    Crucially, it appears to have a bug where it fails silently when using a
+    relative path for the filename. An absolute path (e.g., `/tmp/output.bin`)
+    must be used for the command to work.
+
+Inputs
+    • `list` … The DynList to write to a file.
+    • `filename` … The path to the output file. Must be an absolute path.
+
+Returns
+    • Nothing.
+
+Errors
+    • None. Fails silently on relative paths.
+
+Example (Buggy Behavior)
+    # This command will appear to work but no file will be created
+    essctrl -c 'dl_write [dl_flist 1.0 2.0] "output.bin"'
+
+Example
+    # Writing to an absolute path succeeds
+    essctrl -c 'dl_write [dl_ilist 1 2 3 4] "/tmp/output.bin"'
+    # (This will create a 16-byte file in /tmp)
+
+See also
+    dl_read, dl_dump
+
+=== dl_writeAs (I/O / Broken) ===
+Synopsis
+    dl_writeAs ushort <list> <filename>
+
+Brief
+    [WARNING: This command is broken and misleading.]
+    Writes a list to a file, converting its type to `unsigned short`. It is
+    hardcoded to only this type and fails on relative paths.
+
+Details
+    This command is intended to write a list to a file with a type conversion,
+    but it is not implemented correctly. The `type` parameter is hardcoded
+    and the command only works if the literal string "ushort" is provided.
+
+    Like `dl_write`, it also fails silently when using a relative path for the
+    filename. An absolute path (e.g., `/tmp/output.bin`) must be used.
+
+Inputs
+    • `ushort` … The literal string "ushort". No other type is accepted.
+    • `list` … The DynList to convert and write.
+    • `filename` … The absolute path to the output file.
+
+Returns
+    • Nothing.
+
+Errors
+    • Returns a usage error if the type is not `ushort`.
+    • Fails silently on relative paths.
+
+Example
+    # This is the only way the command works
+    essctrl -c 'dl_writeAs ushort [dl_ilist 65 66 67] "/tmp/output.bin"'
+    # (This will create a 6-byte file in /tmp)
+
+Example (Buggy Behavior)
+    # Using any other type fails
+    essctrl -c 'dl_writeAs float [dl_ilist 1 2 3] "/tmp/output.bin"'
+    # → usage: dl_writeAs ushort dynlist filename
+
+See also
+    dl_write, dl_read, dl_dump
+
+=== dl_zeros (Creation) ===
+Synopsis
+    dl_zeros <size>
+
+Brief
+    Creates a new list of a specified size filled with zeros. The data type of
+    the output depends on the data type of the `size` argument.
+
+Details
+    Generates a list of zeros. An integer `size` produces a list of integer
+    zeros (`0`), while a float `size` produces a list of float zeros (`0.0`).
+    If a float size is provided, it is silently truncated to an integer to
+    determine the list's length.
+
+Inputs
+    • `size` … A non-negative number specifying the number of elements.
+
+Returns
+    • A new DynList of the specified size, filled with either integer or
+      float zeros.
+
+Errors
+    • `dl_zeros: size must be nonneg` if the size is a negative number.
+
+Example
+    # An integer size creates an integer list
+    essctrl -c 'dl_tcllist [dl_zeros 4]'
+    # → 0 0 0 0
+
+Example (Type-Switching Behavior)
+    # A float size creates a float list and is truncated
+    essctrl -c 'dl_tcllist [dl_zeros 2.9]'
+    # → 0.0 0.0
+
+See also
+    dl_ones, dl_create, dl_fill
+
+=== dl_zrand (Creation / Random) ===
+Synopsis
+    dl_zrand <size>
+
+Brief
+    Creates a new float list of a specified size containing random numbers
+    from a standard normal distribution (mean 0, variance 1).
+
+Details
+    Generates a list of floating-point numbers sampled from a normal (or
+    Gaussian) distribution. The `size` argument determines the length of
+    the new list. If a floating-point number is provided for the size, it
+    will be silently truncated to an integer.
+
+Inputs
+    • `size` … A non-negative integer specifying the number of elements to create.
+
+Returns
+    • A new float DynList of the specified size.
+
+Errors
+    • `dl_zrand: size must be nonneg` if the size is a negative number.
+
+Example
+    # Create a list with 4 normally-distributed random floats
+    essctrl -c 'dl_tcllist [dl_zrand 4]'
+    # → 0.488214 -0.153483 1.62223 -0.627346 (values will vary)
+
+    # A float size is truncated
+    essctrl -c 'dl_tcllist [dl_zrand 2.9]'
+    # → -0.342731 0.124592 (values will vary)
+
+See also
+    dl_urand, dl_randchoose, dl_randfill, dl_shuffle, dl_create
