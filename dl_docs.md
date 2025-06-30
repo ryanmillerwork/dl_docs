@@ -3957,3 +3957,848 @@ Example
 
 See also
     dl_delete, dl_create
+
+=== dl_bmax / dl_bmean / dl_bmin (Reduction / List of Lists) ===
+
+Brief
+    [WARNING: These commands do not exist.]
+    The documentation mentions `dl_bmax` (maximum of each sublist), `dl_bmean`
+    (mean of each sublist), and `dl_bmin` (minimum of each sublist), but
+    none of these are valid commands in the `essctrl` environment. The command
+    `dl_bmins` exists for finding the minimums.
+
+See also
+    dl_bmins, dl_bsums, dl_bstds
+
+=== dl_bshiftcycle / dl_bstd (Manipulation / List of Lists) ===
+
+Brief
+    [WARNING: These commands do not exist.]
+    The documentation mentions `dl_bshiftcycle` and `dl_bstd` (standard
+    deviation of each sublist), but they are not valid commands in the
+    `essctrl` environment. `dl_bstds` exists for standard deviations.
+
+See also
+    dl_bshift, dl_bstds
+
+=== dl_char (Conversion) ===
+Synopsis
+    dl_char <source_list>
+
+Brief
+    Converts the elements of a source list to character (byte) type,
+    returning a new char DynList. Floats are truncated, and non-numeric
+    strings are silently converted to 0.
+
+Inputs
+    • source_list … The name of a numeric DynList or a Tcl list of numeric
+                    values provided as a single string.
+
+Returns
+    • Type …………… string (name of a new char DynList)
+    • Element type … char
+    • Note …………… `dl_tcllist` will display the numeric byte values, not
+                    ASCII characters.
+
+Errors & Bugs
+    • The optional `[tclvar]` argument documented in the usage message is
+      non-functional and is ignored. It simply processes its first argument.
+    • BUG: If the source list contains non-numeric strings, the command does
+      not fail. Instead, it silently converts these strings to `0`, which
+      can lead to unexpected data.
+
+Example
+    # Convert an integer list to a char list
+    dl_tcllist [dl_char [dl_ilist 65 66 67]]
+    # → 65 66 67
+
+    # Convert a Tcl list string (truncates floats)
+    dl_tcllist [dl_char {72.2 73.9 74.5}]
+    # → 72 73 74
+
+    # Non-numeric strings are silently converted to 0
+    set strings [dl_slist "A" "B" "C"]
+    dl_tcllist [dl_char $strings]
+    # → 0 0 0
+
+See also
+    dl_clist, dl_int, dl_float
+
+=== dl_pack (Manipulation / Restructuring) ===
+Synopsis
+    dl_pack <list_name>
+
+Brief
+    Packs each element of a simple list into its own single-element sublist,
+    creating a new list of lists. This is the functional inverse of
+    `dl_collapse`.
+
+Inputs
+    • list_name … The name of a simple (depth 0) DynList to pack.
+
+Returns
+    • A new DynList of type `list` and depth `1`.
+    • The new list will have the same length as the input list.
+
+Errors
+    • TCL_ERROR if the list is not found.
+    • TCL_ERROR if the input list is not a simple list (e.g., already a
+      list of lists).
+
+Example
+    set simple [dl_ilist 10 20 30]
+    set packed [dl_pack $simple]
+
+    # The new list has 3 elements, each is a list
+    dl_length $packed
+    # → 3
+
+    # The sublists each have a length of 1
+    dl_tcllist [dl_lengths $packed]
+    # → 1 1 1
+
+    # To see the full structure, you'd need to iterate
+    # The conceptual structure is: {{10} {20} {30}}
+
+See also
+    dl_collapse, dl_unpack, dl_llist
+
+=== dl_parzen (Statistics / Broken) ===
+Synopsis
+    dl_parzen <data_list> <start> <stop> <pilot_sd> <nsd> <resolution>
+
+Brief
+    [WARNING: This command is broken.]
+    It is intended to perform Parzen-window kernel density estimation, but
+    instead of returning a density curve (a list of numbers), it returns
+    only a single, seemingly meaningless, floating-point value.
+
+Inputs
+    • data_list … A numeric DynList.
+    • start ……… Start of the estimation range.
+    • stop ……… End of the estimation range.
+    • pilot_sd … Pilot standard deviation.
+    • nsd ………… Number of standard deviations.
+    • resolution … The desired number of points in the output curve.
+
+Returns
+    • A single-element list containing a single float value, regardless of
+      the `resolution` parameter.
+
+Example
+    # This should return a list of 16 numbers, but returns only one.
+    set data [dl_flist 1 2 3 8 9 10]
+    set result [dl_parzen $data 0 15 1.0 3 16]
+    dl_length $result
+    # → 1
+
+See also
+    dl_hist, dl_parzenLists (likely also broken)
+
+=== dl_parzenLists (Statistics / Broken) ===
+
+Brief
+    [WARNING: This command does not exist.]
+    Following the pattern of other related commands, `dl_parzenLists` is
+    mentioned in the function list but is not a valid command in the
+    `essctrl` environment.
+
+See also
+    dl_parzen
+
+=== dl_pickone (Manipulation / Selection) ===
+Synopsis
+    dl_pickone <list_name>
+
+Brief
+    Selects and returns a single random element from a list.
+
+Inputs
+    • list_name … The name of a non-empty DynList.
+
+Returns
+    • A single value chosen randomly from the elements of the list. The
+      type of the returned value matches the element type of the list.
+
+Errors
+    • TCL_ERROR if the list is not found.
+    • Note: The command fails silently (produces no output and no error) if
+      the input list is empty.
+
+Example
+    # Returns a random letter from the list
+    dl_pickone [dl_slist a b c d e]
+    # → (e.g.) c
+
+    # Returns a random number from the list
+    dl_pickone [dl_ilist 10 20 30 40 50]
+    # → (e.g.) 40
+
+See also
+    dl_choose, dl_randchoose, dl_first, dl_last
+
+=== dl_pushTemps / dl_popTemps (Memory Management) ===
+Synopsis
+    dl_pushTemps
+    dl_popTemps
+
+Brief
+    Provides a stack-based mechanism to save and restore the state of
+    temporary list creation. `dl_pushTemps` saves the current state of the
+    temporary list registry. `dl_popTemps` restores the most recently saved
+    state, deleting any temporary lists created since the corresponding push.
+
+Inputs
+    These commands take no arguments.
+
+Side Effects
+    • `dl_pushTemps`: Creates a savepoint for the temporary list registry.
+    • `dl_popTemps`: Deletes all temporary lists (names starting with '%')
+      created after the last `dl_pushTemps` call.
+
+Errors
+    • `dl_popTemps: popped empty templist stack` if `dl_popTemps` is called
+      more times than `dl_pushTemps`.
+
+Example
+    # Save the current state (e.g., no temporary lists)
+    dl_pushTemps
+
+    # Create some temporary lists
+    set temp1 [dl_flist 1.1 2.2]
+    set temp2 [dl_add $temp1 5]
+
+    # At this point, two temporary lists exist.
+
+    # Restore the saved state, deleting temp1 and temp2
+    dl_popTemps
+
+    # Now, temp1 and temp2 no longer exist.
+    dl_exists $temp1   ;# → 0
+
+See also
+    dl_clean, dl_delete
+
+=== dl_prepend (Manipulation) ===
+Synopsis
+    dl_prepend <list_name> <value1> [<value2> ...]
+
+Brief
+    Adds one or more values to the beginning of a list. This command
+    modifies the list in-place. Note that multiple values are prepended
+    sequentially, so they will appear in reverse order at the start of the
+    list.
+
+Inputs
+    • list_name … The name of the DynList to modify.
+    • valueN …… One or more values to prepend. They must be compatible with
+                 the list's data type.
+
+Side Effects
+    • The specified list is modified.
+
+Errors
+    • TCL_ERROR if the list is not found.
+    • TCL_ERROR: `expected <type> but got "..."` if a value cannot be
+      converted to the list's datatype.
+
+Example
+    set myLetters [dl_slist c d e]
+    dl_prepend $myLetters a b
+    # Note the reverse order of "a" and "b"
+    dl_tcllist $myLetters
+    # → b a c d e
+
+See also
+    dl_append, dl_insert, dl_concat
+
+=== dl_randchoose (Creation / Random) ===
+Synopsis
+    dl_randchoose <m> <n>
+
+Brief
+    Creates a new list containing `n` unique random integers chosen from
+    the range `[0, m-1]`. This is useful for generating random indices for
+    sampling from another list.
+
+Inputs
+    • m … An integer defining the exclusive upper bound of the range `[0, m-1]`.
+    • n … The number of unique integers to choose from the range.
+    • Constraints … `n` must be less than or equal to `m`.
+
+Returns
+    • A new integer DynList of length `n`.
+
+Errors
+    • TCL_ERROR: `dl_randchoose: n must be <= m` if `n` is greater than `m`.
+
+Example
+    # Choose 5 unique random numbers from the range [0, 19]
+    dl_tcllist [dl_randchoose 20 5]
+    # → (e.g.) 15 3 11 18 1
+
+    # Choose 10 unique random numbers from the range [0, 9] (a shuffle)
+    dl_tcllist [dl_randchoose 10 10]
+    # → (e.g.) 3 8 0 5 2 9 1 6 7 4
+
+See also
+    dl_choose, dl_pickone, dl_shuffle, dl_irand
+
+=== dl_randfill (Creation / Random) ===
+Synopsis
+    dl_randfill <size>
+
+Brief
+    Creates a new integer list containing a random permutation of integers
+    from `0` to `size-1`. This is a convenient way to generate a shuffled
+    list of indices.
+
+Inputs
+    • size … A positive integer specifying the size of the list to create.
+
+Returns
+    • A new integer DynList of length `size`.
+
+Errors
+    • TCL_ERROR if `size` is not a valid positive integer.
+
+Example
+    # Create a shuffled list of indices from 0 to 4
+    dl_tcllist [dl_randfill 5]
+    # → (e.g.) 3 0 2 4 1
+
+Notes
+    • This command is functionally equivalent to `dl_randchoose N N`.
+
+See also
+    dl_randchoose, dl_shuffle
+
+=== dl_rank (Counting / Obscure) ===
+Synopsis
+    dl_rank <list_name>
+
+Brief
+    [WARNING: This command is severely misnamed.]
+    It does NOT compute the rank of elements in the traditional sense. Instead,
+    it returns a list indicating the occurrence count of each element. For
+    each item in the input list, the corresponding output value is its
+    0-indexed "seen" count.
+
+Inputs
+    • list_name … The name of a DynList. Can be numeric or string type.
+
+Returns
+    • A new integer list of the same length as the input.
+    • For each element, the value is 0 if it's the first time that element
+      has been seen, 1 if it's the second time, 2 for the third, and so on.
+
+Example
+    # Count occurrences of each number
+    set my_list [dl_ilist 10 20 10 30 20 10]
+    dl_tcllist [dl_rank $my_list]
+    # → 0 0 1 0 1 2
+
+    # The first 10 is the 0th occurrence. The first 20 is the 0th.
+    # The second 10 is the 1st occurrence. The first 30 is the 0th.
+    # The second 20 is the 1st occurrence. The third 10 is the 2nd.
+
+    # Works with strings as well
+    set my_strings [dl_slist a b a c a b]
+    dl_tcllist [dl_rank $my_strings]
+    # → 0 0 1 0 2 1
+
+See also
+    dl_unique, dl_countOccurences
+
+=== dl_recip (Arithmetic) ===
+Synopsis
+    dl_recip <list>
+
+Brief
+    Computes the element-wise reciprocal (1/x) of a numeric list.
+
+    [WARNING: This command has a critical bug.]
+
+Inputs
+    • list … A numeric DynList.
+
+Returns
+    • A new float DynList containing the reciprocals.
+
+Errors & Bugs
+    • TCL_ERROR if the list is not numeric.
+    • BUG: For any element with a value of 0, the command incorrectly
+      returns `0.0` instead of `Inf` (infinity) or producing an error.
+      This can lead to silent incorrect results in subsequent calculations.
+
+Example
+    # Correctly calculates reciprocals for non-zero numbers
+    set nums [dl_flist 1 2 4 -5]
+    dl_tcllist [dl_recip $nums]
+    # → 1.0 0.5 0.25 -0.2
+
+    # Incorrectly handles division by zero
+    set nums_with_zero [dl_ilist 2 1 0 -1 -2]
+    dl_tcllist [dl_recip $nums_with_zero]
+    # → 0.5 1.0 0.0 -1.0 -0.5  (The '0.0' is wrong)
+
+See also
+    dl_div, dl_mult
+
+=== dl_regexp (Searching / Regular Expressions) ===
+Synopsis
+    dl_regexp <list_name> <regex_pattern>
+
+Brief
+    Applies a regular expression to each element of a string list. For each
+    element, it returns a sublist containing the full match and any captured
+    substrings.
+
+Inputs
+    • list_name …… The name of a DynList of strings.
+    • regex_pattern … A Tcl-style regular expression.
+
+Returns
+    • A new list of lists. For each element in the input list:
+      - If the pattern does not match, the corresponding sublist is empty.
+      - If the pattern matches, the corresponding sublist contains:
+        1. The entire matched string.
+        2. The string from the first capturing group (if any).
+        3. The string from the second capturing group (if any), etc.
+
+Example
+    set my_strings [dl_slist "cat" "car" "dog" "cathy"]
+    set pattern {^ca(t)}
+
+    # dl_regexp returns a list of lists.
+    set results [dl_regexp $my_strings $pattern]
+
+    # Use dl_tcllist to see the structure:
+    dl_tcllist $results
+    # → {{cat t}} {} {} {{cat t}}
+
+    # The result for "cat" is {cat t} because the full match is "cat" and
+    # the first capture group (t) matched "t".
+    # The result for "car" and "dog" is {} because they did not match.
+    # The result for "cathy" is also {cat t} because the regex only matches
+    # the "cat" part.
+
+Notes
+    • This command is for extracting matched data. To simply check if a
+      pattern matches (i.e., get a true/false result), use `dl_regmatch`.
+
+See also
+    dl_regmatch, dl_stringmatch, dl_findPatterns
+
+=== dl_regmatch (Searching / Regular Expressions) ===
+Synopsis
+    dl_regmatch <list_name> <regex_pattern>
+
+Brief
+    Performs an element-wise regular expression match on a string list and
+    returns a new list of booleans (0s and 1s) indicating if a match was
+    found for each element.
+
+Inputs
+    • list_name …… The name of a DynList of strings.
+    • regex_pattern … A Tcl-style regular expression.
+
+Returns
+    • A new integer DynList of the same length as the input.
+    • Each element is `1` if the pattern matched the corresponding string,
+      and `0` otherwise.
+
+Example
+    set my_strings [dl_slist "cat" "car" "dog" "cathy"]
+    set pattern {^ca(t|r)}
+
+    dl_tcllist [dl_regmatch $my_strings $pattern]
+    # → 1 1 0 1
+
+Notes
+    • This command is for checking for matches. To extract the matched
+      substrings and captured groups, use `dl_regexp`.
+
+See also
+    dl_regexp, dl_stringmatch, dl_eq
+
+=== dl_replicate (Manipulation / Repetition) ===
+Synopsis
+    dl_replicate <list_name> <n>
+
+Brief
+    Creates a new list by repeating (concatenating) an entire list `n` times.
+
+Inputs
+    • list_name … The name of the DynList to replicate.
+    • n …………… A positive integer number of times to replicate.
+
+Returns
+    • A new DynList containing the replicated items.
+
+Errors
+    • TCL_ERROR if `n` is not a valid positive integer.
+
+Example
+    # Replicate the list {a b} three times
+    dl_tcllist [dl_replicate [dl_slist a b] 3]
+    # → a b a b a b
+
+See also
+    dl_repeat, dl_fill, dl_cycle
+
+=== dl_repeat / dl_repeatElements (Manipulation / Repetition) ===
+Synopsis
+    dl_repeat <list_name> <n>
+    dl_repeatElements <list_name> <n>
+
+Brief
+    Creates a new list by repeating each element of a source list `n` times.
+    `dl_repeat` and `dl_repeatElements` are aliases for the same functionality.
+
+Inputs
+    • list_name … The name of the DynList to use as a source.
+    • n …………… A positive integer number of times to repeat each element.
+
+Returns
+    • A new DynList containing the repeated elements.
+
+Errors
+    • TCL_ERROR if `n` is not a valid positive integer.
+
+Example
+    # Repeat each element of {a b} three times
+    dl_tcllist [dl_repeat [dl_slist a b] 3]
+    # → a a a b b b
+
+See also
+    dl_replicate, dl_fill
+
+=== dl_replace (Manipulation) ===
+Synopsis
+    dl_replace <source_list> <mask_list> <replacement_list>
+
+Brief
+    Creates a new list by replacing elements from a source list based on a
+    boolean mask. For each element, if the mask is true (1), the element is
+    taken from the replacement list; otherwise, it's taken from the source list.
+
+    [WARNING: This command has unusual requirements for its arguments.]
+
+Inputs
+    • source_list …… The original DynList.
+    • mask_list ……… A DynList of 0s and 1s, the same length as `source_list`.
+    • replacement_list … A DynList of replacement values, which MUST be the
+                       same length as `source_list`.
+
+Returns
+    • A new DynList with the replaced elements.
+
+Errors
+    • TCL_ERROR: `unable to replace elements...` if `source_list`,
+      `mask_list`, and `replacement_list` do not all have the same length.
+
+Example
+    # Let's replace 'b' and 'd' in the source list.
+    set source [dl_slist a b c d e]
+
+    # The mask must have a '1' at the indices for 'b' and 'd'.
+    set mask [dl_ilist 0 1 0 1 0]
+
+    # The replacement list must be the same size as the source.
+    # The values at non-masked indices ('A', 'C', 'E') are ignored.
+    set replacements [dl_slist A X C Y E]
+
+    # The new list takes 'a' from source, 'X' from replacements, 'c' from
+    # source, 'Y' from replacements, and 'e' from source.
+    dl_tcllist [dl_replace $source $mask $replacements]
+    # → a X c Y e
+
+See also
+    dl_replaceByIndex, dl_put
+
+=== dl_replaceByIndex (Manipulation) ===
+Synopsis
+    dl_replaceByIndex <source_list> <index_list> <replacement_list>
+
+Brief
+    Creates a new list by replacing elements in a source list at specified
+    indices with new values.
+
+Inputs
+    • source_list …… The original DynList.
+    • index_list ……… A DynList of 0-based integer indices where replacements
+                     should occur.
+    • replacement_list … A DynList of new values. The length of this list
+                       must be equal to the length of the `index_list`.
+
+Returns
+    • A new DynList with the elements at the specified indices replaced.
+
+Errors
+    • TCL_ERROR if the length of `index_list` does not match the length of
+      `replacement_list`.
+    • TCL_ERROR if any index in `index_list` is out of bounds for the
+      `source_list`.
+
+Example
+    set source [dl_slist a b c d e]
+
+    # Replace the elements at index 1 ('b') and 4 ('e')
+    set indices [dl_ilist 1 4]
+    set new_vals [dl_slist X Y]
+
+    dl_tcllist [dl_replaceByIndex $source $indices $new_vals]
+    # → a X c d Y
+
+See also
+    dl_replace, dl_put, dl_insert
+
+=== dl_reset (Manipulation) ===
+Synopsis
+    dl_reset <list_name1> [<list_name2> ...]
+
+Brief
+    Resets one or more dynamic lists, clearing all their elements and
+    setting their length to 0. This command modifies the list(s) in-place.
+
+Inputs
+    • list_name(s) … One or more names of existing DynLists to clear.
+
+Side Effects
+    • The specified list(s) are emptied.
+
+Errors
+    • TCL_ERROR if any list name is not found.
+
+Example
+    set my_list [dl_ilist 1 2 3 4 5]
+    dl_length $my_list
+    # → 5
+
+    dl_reset $my_list
+    dl_length $my_list
+    # → 0
+
+See also
+    dl_delete, dl_clean
+
+=== dl_return (Scoping / Procedures) ===
+Synopsis
+    dl_return <list_name>
+
+Brief
+    Used inside a Tcl `proc` to correctly return a dynamic list. It
+    converts a temporary or local list into a special "return list" that
+    persists after the procedure has finished executing.
+
+Inputs
+    • list_name … The name of a DynList to be returned from a `proc`.
+
+Returns
+    • The name of a new "return list" (e.g., `>0<`). This new list is a
+      copy of the input list.
+
+Side Effects
+    • Using `return [dl_return $myList]` is the only reliable way to get a
+      list out of a Tcl `proc`. Simply using `return $myList` will result
+      in a dangling pointer, as the temporary list will be deleted when the
+      `proc` exits.
+
+Example
+    # A proc that creates a list and correctly returns it.
+    proc create_and_return {} {
+        # Create a temporary list inside the proc
+        set temp [dl_ilist 1 2 3]
+
+        # Use dl_return to ensure it survives after the proc exits
+        return [dl_return $temp]
+    }
+
+    # Call the proc and capture the name of the returned list
+    set my_list [create_and_return]
+
+    # The list is valid and can be used
+    dl_tcllist $my_list
+    # → 1 2 3
+
+See also
+    dl_local, dl_cleanReturns
+
+=== dl_round (Arithmetic) ===
+Synopsis
+    dl_round <list>
+
+Brief
+    Rounds the elements of a numeric list to the nearest integer. It uses a
+    "round half away from zero" rule (e.g., 2.5 becomes 3, and -2.5 becomes -3).
+
+Inputs
+    • list … A numeric DynList.
+
+Returns
+    • A new integer (`long`) DynList containing the rounded values.
+
+Errors
+    • TCL_ERROR if the list is not found or is not numeric.
+
+Example
+    set values [dl_flist 1.2 1.8 2.5 3.5 -2.5 -2.8]
+    dl_tcllist [dl_round $values]
+    # → 1 2 3 4 -3 -3
+
+See also
+    dl_floor, dl_ceil, dl_int
+
+=== dl_scanInt (Conversion / Parsing) ===
+Synopsis
+    dl_scanInt <string_list>
+
+Brief
+    Parses each string in a source list, attempting to convert it into a
+    decimal integer. The parsing is lenient and stops at the first
+    non-numeric character.
+
+Inputs
+    • string_list … A DynList of strings.
+
+Returns
+    • A new integer (`long`) DynList.
+    • Parsing stops at the first invalid character (e.g., "25px" becomes 25).
+    • A string with no valid leading integer (e.g., "a25") becomes 0.
+
+Example
+    set strings [dl_slist "10" "20px" "-5.5" "bad_string"]
+    dl_tcllist [dl_scanInt $strings]
+    # → 10 20 -5 0
+
+See also
+    dl_scanFloat, dl_scanHex, dl_int
+
+=== dl_scanFloat (Conversion / Parsing) ===
+Synopsis
+    dl_scanFloat <string_list>
+
+Brief
+    Parses each string in a source list, attempting to convert it into a
+    floating-point number. The parsing is lenient and stops at the first
+    invalid character.
+
+Inputs
+    • string_list … A DynList of strings.
+
+Returns
+    • A new `float` DynList.
+    • Parsing stops at the first invalid character (e.g., "3.14p" becomes 3.14).
+    • A string with no valid leading float (e.g., "a3.14") becomes 0.0.
+
+Example
+    set strings [dl_slist "10" "2.5e-2xyz" "-5.5" "bad_string"]
+    dl_tcllist [dl_scanFloat $strings]
+    # → 10.0 0.025 -5.5 0.0
+
+See also
+    dl_scanInt, dl_scanHex, dl_float
+
+=== dl_scanHex (Conversion / Parsing) ===
+Synopsis
+    dl_scanHex <string_list>
+
+Brief
+    Parses each string in a source list, attempting to convert it from a
+    hexadecimal representation into an integer. The parsing is lenient.
+
+Inputs
+    • string_list … A DynList of strings.
+
+Returns
+    • A new integer (`long`) DynList.
+    • The `0x` prefix is optional.
+    • Parsing stops at the first invalid hex character (0-9, a-f).
+
+Example
+    set strings [dl_slist "10" "0xFF" "A5g" "z" "cafe"]
+    dl_tcllist [dl_scanHex $strings]
+    # → 16 255 165 0 51966
+
+See also
+    dl_scanInt, dl_scanOctal, dl_scanBinary
+
+=== dl_scanOctal (Conversion / Parsing) ===
+Synopsis
+    dl_scanOctal <string_list>
+
+Brief
+    Parses each string in a source list, attempting to convert it from an
+    octal representation into an integer. The parsing is lenient.
+
+Inputs
+    • string_list … A DynList of strings.
+
+Returns
+    • A new integer (`long`) DynList.
+    • Parsing stops at the first invalid octal character (0-7).
+
+Example
+    set strings [dl_slist "10" "077" "101q" "0" "8"]
+    dl_tcllist [dl_scanOctal $strings]
+    # → 8 63 65 0 0
+
+See also
+    dl_scanInt, dl_scanHex, dl_scanBinary
+
+=== dl_scanBinary (Conversion / Parsing) ===
+Synopsis
+    dl_scanBinary <string_list>
+
+Brief
+    Parses each string in a source list, attempting to convert it from a
+    binary representation into an integer. The parsing is lenient.
+
+Inputs
+    • string_list … A DynList of strings.
+
+Returns
+    • A new integer (`long`) DynList.
+    • Parsing stops at the first invalid binary character (0-1).
+
+Example
+    set strings [dl_slist "10" "1111" "1012" "0" "2"]
+    dl_tcllist [dl_scanBinary $strings]
+    # → 2 15 5 0 0
+
+See also
+    dl_scanInt, dl_scanHex, dl_scanOctal
+
+=== dl_sdf (Statistics / Broken) ===
+Synopsis
+    dl_sdf <spike_times> <start> <stop> <kernel_sd> <kernel_nsds> <resolution>
+
+Brief
+    [WARNING: This command is broken.]
+    It is intended to calculate a Spike Density Function from a list of
+    event timestamps. However, like `dl_parzen`, instead of returning a
+    density curve (a list of numbers), it returns only a single, seemingly
+    meaningless, floating-point value.
+
+Inputs
+    • spike_times … A numeric DynList of event timestamps.
+    • start ……… Start of the estimation range.
+    • stop ……… End of the estimation range.
+    • kernel_sd … Standard deviation of the Gaussian kernel.
+    • kernel_nsds … Width of the kernel in number of standard deviations.
+    • resolution … The desired number of points in the output curve.
+
+Returns
+    • A single-element list containing a single float value, regardless of
+      the `resolution` parameter.
+
+Example
+    # This should return a list of 16 numbers, but returns only one.
+    set spikes [dl_flist 1.1 2.3 2.8 5.4]
+    set result [dl_sdf $spikes 0 10 0.5 3 16]
+    dl_length $result
+    # → 1
+
+See also
+    dl_parzen (also broken), dl_hist
