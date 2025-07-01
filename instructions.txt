@@ -1,4 +1,4 @@
-dl_docs.json contains a list of custom commands.
+dg_docs.json contains a list of custom commands.
 
 We need to go through these docs one command at a time. It's very important to only work on a single command section at a time.
 
