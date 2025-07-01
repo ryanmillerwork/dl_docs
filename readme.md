@@ -55,7 +55,7 @@ proc multiply_by_10 {value} {
 Load your functions into the server's memory using the "atomic execution" method. You only need to do this once per session for your library file.
 
 ```bash
-TCL_SCRIPT=$(cat /home/lab/tmp_library.tcl); essctrl -c "$TCL_SCRIPT"
+essctrl -c "source /home/lab/tmp_library.tcl"
 ```
 The server will now remember these procedures for all subsequent `essctrl` calls.
 
@@ -235,7 +235,7 @@ While using a function library is recommended for most cases, there are other wa
 If you have a complex script with procedures that you only intend to run once, you can load and execute it in a single command. This is the same method used to load a library. The entire script is evaluated as a single unit, and only the final result is returned.
 
 ```bash
-TCL_SCRIPT=$(cat your_script.tcl); essctrl -c "$TCL_SCRIPT"
+essctrl -c "source /home/lab/your_script.tcl"
 ```
 
 ### Method 2: Interactive Debugging (Line-by-Line)
@@ -246,4 +246,80 @@ You use shell redirection to pipe the script into `essctrl`:
 
 ```bash
 essctrl < your_script.tcl
+``` 
+The output will show the result of *each command* as it is executed. For example, if `your_script.tcl` contains:
+```tcl
+set mylist [dl_ilist 10 20 30]
+dl_length $mylist
+```
+The output would be:
+```
+→ %list0%
+→ 3
+```
+
+This is different from atomic execution, which would only show the final `3`. It is only suitable for simple, sequential scripts and will fail on multi-line `proc` definitions.
+
+## Handling Errors in Shell Scripts
+
+When calling `essctrl` from a shell script, it's important to check for errors. `essctrl` will print errors to `stderr` and return a non-zero exit code upon failure. You can check the exit code (`$?` in bash) to detect failures.
+
+```bash
+#!/bin/bash
+
+# Execute a command that will fail
+output=$(essctrl -c 'dl_add [dl_ilist 1 2] [dl_ilist 3]' 2>&1)
+exit_code=$?
+
+if [ $exit_code -ne 0 ]; then
+    echo "essctrl command failed with exit code $exit_code."
+    echo "Error message: $output"
+    # Exit the script or handle the error appropriately
+    exit 1
+fi
+
+echo "Command succeeded."
+
+```
+This script redirects `stderr` to `stdout` (`2>&1`) to capture the error message in the `$output` variable.
+
+## Example Script: Filtering a Group
+
+The following example is available in the file `example_get_even_rows.tcl`. It demonstrates several of the concepts discussed here: creating groups and lists, performing calculations, and using the results of one command to drive another.
+
+The script performs the following steps:
+1.  Creates a group called `source_data`.
+2.  Populates it with a list of 20 random integers.
+3.  Calculates the *indices* of the elements that are even.
+4.  Uses `dg_choose` to create a new group containing only the rows at those indices.
+5.  Renames the resulting group to `even_rows`.
+6.  Returns the final, filtered group as a JSON string.
+
+**`example_get_even_rows.tcl`:**
+```tcl
+# Clears any existing groups for a clean run
+dg_delete ALL
+
+# Create a source group with random integers
+set g [dg_create source_data]
+dl_set $g:ints [dl_irand 20 100]
+
+# Get the INDICES where the integer is even
+set even_indices [dl_eqIndex [dl_mod $g:ints 2] 0]
+
+# Use dg_choose to create a NEW group by selecting rows from the source
+# group using the list of indices.
+set tmp_group [dg_choose $g $even_indices]
+
+# Rename the new group to the desired final name.
+dg_rename $tmp_group even_rows
+
+# Return the final group, formatted as a JSON string
+return [dg_json even_rows]
+```
+
+To run this script, use the `source` command within `essctrl`:
+```bash
+essctrl -c 'source ./example_get_even_rows.tcl'
+# → {"ints":[82,4,86,6,16,4,30,80,48]} (output will vary)
 ``` 
