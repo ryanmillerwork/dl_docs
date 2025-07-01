@@ -42,16 +42,23 @@ This fails because TCL never sees the variables `$a` and `$b`.
 
 ### The Solutions
 
-There are two main ways to solve this:
+There are three main ways to solve this:
 
-1.  **Escape the dollar signs:** Tell `bash` to treat the `$` as a literal character by escaping it with a single backslash (`\`).
+1.  **Use single quotes:** This is often the simplest solution. The shell passes the string to `essctrl` literally, without interpreting the `$`. This avoids the need to escape special characters.
+
+    ```bash
+    # CORRECT - The shell passes $a and $b to TCL literally.
+    essctrl -c 'set a [dl_flist 0.1 0.2]; set b [dl_flist 1.0 2.0]; dl_tcllist [dl_add $a $b]'
+    ```
+
+2.  **Escape the dollar signs:** If you must use double quotes, tell `bash` to treat the `$` as a literal character by escaping it with a single backslash (`\`).
 
     ```bash
     # CORRECT - The shell passes \$a and \$b to TCL, which then expands them correctly.
     essctrl -c "set a [dl_flist 0.1 0.2]; set b [dl_flist 1.0 2.0]; dl_tcllist [dl_add \$a \$b]"
     ```
 
-2.  **Use Nested Commands:** The most robust method is often to avoid variables altogether and nest the commands directly. This bypasses any shell expansion issues.
+3.  **Use Nested Commands:** The most robust method is often to avoid variables altogether and nest the commands directly. This bypasses any shell expansion issues.
 
     ```bash
     # CORRECT and often preferred for simplicity
