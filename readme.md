@@ -2,6 +2,68 @@
 
 This document outlines best practices and common pitfalls when running `dl_library` TCL functions from the shell using the `essctrl` utility.
 
+## Recommended Workflow: Using a Function Library
+
+The Tcl server that `essctrl` communicates with is **stateful**. This means you can define procedures in one command and call them in subsequent commands. This is the most powerful and maintainable way to work with `essctrl` for any non-trivial logic.
+
+The workflow has three steps: **Define**, **Load**, and **Execute**.
+
+### 1. Define Your Functions in a `.tcl` File
+
+For developing and testing, it's recommended to use a dedicated temporary file: `/home/lab/tmp_library.tcl`. Place your reusable procedures here. Remember to use `dl_return` when a procedure needs to return a new `dl_library` list.
+
+**Example `/home/lab/tmp_library.tcl`:**
+```tcl
+# A library of custom Tcl procedures for essctrl
+
+# @proc create_and_double
+# @brief Multiplies a dl_list by 2.
+# @param input_list The name of a numeric dl_list.
+# @returns The name of a new list containing the results.
+proc create_and_double {input_list} {
+    set doubled_list [dl_mult $input_list 2]
+    # Use dl_return to safely return the new list from the proc.
+    dl_return $doubled_list
+}
+
+# @proc multiply_by_10
+# @brief Multiplies a single number by 10.
+# @param value A numeric value.
+# @returns The result.
+proc multiply_by_10 {value} {
+    if {![string is double -strict $value]} {
+        error "Input must be a number. Got '$value'."
+    }
+    set result [expr {$value * 10}]
+    return $result
+}
+```
+
+### 2. Load the Library (Once Per Session)
+
+Load your functions into the server's memory using the "atomic execution" method. You only need to do this once per session for your library file.
+
+```bash
+TCL_SCRIPT=$(cat /home/lab/tmp_library.tcl); essctrl -c "$TCL_SCRIPT"
+```
+The server will now remember these procedures for all subsequent `essctrl` calls.
+
+### 3. Execute Functions as Needed
+
+Now you can make simple, readable calls to your functions from the command line.
+
+```bash
+# Call a function that returns a new dl_list
+essctrl -c 'dl_tcllist [create_and_double [dl_ilist 5 10 15]]'
+# → 10 20 30
+
+# Call a function that returns a simple value
+essctrl -c 'return [multiply_by_10 7]'
+# → 70
+```
+
+This approach keeps your temporary logic organized in a predictable place and your command-line calls clean and focused on the specific task at hand.
+
 ## Executing Commands
 
 All commands are executed via the `essctrl` command-line tool with the `-c` flag, which takes a string of TCL commands to execute.
@@ -115,6 +177,47 @@ essctrl -c 'set res [dl_cumsum [dl_flist 1 2 3]]; dl_tcllist $res'
 # → 1.0 3.0 6.0
 ```
 
+### Known Limitations & Unstable Features
+
+#### Do NOT use `puts` or File I/O (`open`)
+
+The `essctrl` Tcl environment is highly unstable when `puts` or file I/O commands (like `open`, `close`, `read`) are used. In our testing, using these commands often leads to `too many nested evaluations (infinite loop?)` errors, even in simple scripts.
+
+**The only reliable way to view data is to return it as the final expression of your script.**
+
+- To view `dl_library` lists, use `dl_tcllist`.
+- To view simple Tcl variables, use `return`.
+
+### Inspecting Simple Tcl Variables
+
+The `dl_tcllist` command is for `dl_library` list objects. To view standard Tcl variables, the Tcl `return` command must be the last instruction in your script. The `puts` command will not work.
+
+*   **To view a single variable:** Use `return $varName`.
+    ```bash
+    essctrl -c 'set a 42; return $a'
+    # → 42
+    ```
+*   **To view multiple variables:** Combine them into a Tcl list and `return` the list.
+    ```bash
+    essctrl -c 'set v1 "hello"; set v2 99; return [list "Value 1:" $v1 "Value 2:" $v2]'
+    # → {Value 1:} hello {Value 2:} 99
+    ```
+*   **To create a log of messages:** For debugging, you can build a list of messages throughout your script using `lappend`. This creates a sequential log of what happened.
+    ```tcl
+    # Tcl code to build a log
+    set log [list]
+    lappend log "Starting process..."
+    set items_processed 42
+    lappend log "Items processed: $items_processed"
+    lappend log "Process complete."
+    return $log
+    ```
+    Executing this with `essctrl` would look like:
+    ```bash
+    essctrl -c 'set log [list]; lappend log "Starting..."; set i 42; lappend log "Items: $i"; lappend log "Done."; return $log'
+    # → {Starting...} {Items: 42} Done.
+    ```
+
 **Incorrect Method:**
 
 Using `puts` will prevent you from seeing the result.
@@ -128,70 +231,24 @@ While both methods work, `netcat` can be simpler for scripts containing
 shell-sensitive characters like `!`, as it avoids complex quoting. For most
 cases, `essctrl -c '...'` is sufficient. 
 
-## Executing Scripts from a File
+## Alternative Script Execution Methods
 
-For logic that is too complex for a single command-line string, you can place your Tcl commands in a `.tcl` file and execute it with `essctrl`. There are two primary methods, each with a different use case.
+While using a function library is recommended for most cases, there are other ways to execute scripts from files.
 
-### Method 1: Interactive Debugging (Line-by-Line)
+### Method 1: Atomic Execution for One-Off Scripts
 
-This method is excellent for debugging because it executes the script as if you were typing it line-by-line into an interactive session, showing the result of *every* command.
+If you have a complex script with procedures that you only intend to run once, you can load and execute it in a single command. This is the same method used to load a library. The entire script is evaluated as a single unit, and only the final result is returned.
+
+```bash
+TCL_SCRIPT=$(cat your_script.tcl); essctrl -c "$TCL_SCRIPT"
+```
+
+### Method 2: Interactive Debugging (Line-by-Line)
+
+This method is excellent for debugging simple, sequential scripts that **do not** contain multi-line procedure (`proc`) definitions. It executes the script as if you were typing it line-by-line into an interactive session, showing the result of *every* command.
 
 You use shell redirection to pipe the script into `essctrl`:
 
 ```bash
 essctrl < your_script.tcl
-```
-
-**Key Characteristics:**
-*   **Verbose Output:** You see the return value of each command, making it easy to trace your script's execution flow.
-*   **No `proc`:** This mode cannot handle multi-line procedure (`proc`) definitions. The script must be a simple, top-to-bottom sequence of commands.
-
-**Example `debug_script.tcl`:**
-```tcl
-# This script shows the output of each step
-dg_create my_debug_group
-dl_set my_debug_group:nums [dl_ilist 1 2]
-dl_tcllist my_debug_group:nums
-```
-
-**Example Execution:**
-```bash
-$ essctrl < debug_script.tcl
-my_debug_group
-my_debug_group:nums
-1 2
-```
-
-### Method 2: Atomic Execution (Clean Output)
-
-This is the most robust method for running finalized scripts. It reads the entire file into a shell variable and passes it to `essctrl -c`. The entire script is evaluated as a single unit, and only the final result is returned.
-
-```bash
-# Recommended for most scripts
-TCL_SCRIPT=$(cat your_script.tcl); essctrl -c "$TCL_SCRIPT"
-
-# You may want to run cleanup separately first
-essctrl -c "dg_delete my_prod_group"
-```
-
-**Key Characteristics:**
-*   **Clean Output:** Only the very last return value from the script is printed.
-*   **Supports `proc`:** This method fully supports multi-line commands, making it ideal for well-structured code with procedures.
-
-**Example `prod_script.tcl`:**
-```tcl
-# This script only returns the final value
-proc do_work {} {
-    dg_create my_prod_group
-    dl_set my_prod_group:data [dl_flist 1.1 2.2]
-    # ... more logic ...
-    return [dl_length my_prod_group:data]
-}
-do_work
-```
-
-**Example Execution:**
-```bash
-$ TCL_SCRIPT=$(cat prod_script.tcl); essctrl -c "$TCL_SCRIPT"
-2
 ``` 
