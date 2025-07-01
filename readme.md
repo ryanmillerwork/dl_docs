@@ -127,3 +127,71 @@ essctrl -c 'set mylist [dl_ilist 1]; puts [dl_datatype $mylist]'
 While both methods work, `netcat` can be simpler for scripts containing
 shell-sensitive characters like `!`, as it avoids complex quoting. For most
 cases, `essctrl -c '...'` is sufficient. 
+
+## Executing Scripts from a File
+
+For logic that is too complex for a single command-line string, you can place your Tcl commands in a `.tcl` file and execute it with `essctrl`. There are two primary methods, each with a different use case.
+
+### Method 1: Interactive Debugging (Line-by-Line)
+
+This method is excellent for debugging because it executes the script as if you were typing it line-by-line into an interactive session, showing the result of *every* command.
+
+You use shell redirection to pipe the script into `essctrl`:
+
+```bash
+essctrl < your_script.tcl
+```
+
+**Key Characteristics:**
+*   **Verbose Output:** You see the return value of each command, making it easy to trace your script's execution flow.
+*   **No `proc`:** This mode cannot handle multi-line procedure (`proc`) definitions. The script must be a simple, top-to-bottom sequence of commands.
+
+**Example `debug_script.tcl`:**
+```tcl
+# This script shows the output of each step
+dg_create my_debug_group
+dl_set my_debug_group:nums [dl_ilist 1 2]
+dl_tcllist my_debug_group:nums
+```
+
+**Example Execution:**
+```bash
+$ essctrl < debug_script.tcl
+my_debug_group
+my_debug_group:nums
+1 2
+```
+
+### Method 2: Atomic Execution (Clean Output)
+
+This is the most robust method for running finalized scripts. It reads the entire file into a shell variable and passes it to `essctrl -c`. The entire script is evaluated as a single unit, and only the final result is returned.
+
+```bash
+# Recommended for most scripts
+TCL_SCRIPT=$(cat your_script.tcl); essctrl -c "$TCL_SCRIPT"
+
+# You may want to run cleanup separately first
+essctrl -c "dg_delete my_prod_group"
+```
+
+**Key Characteristics:**
+*   **Clean Output:** Only the very last return value from the script is printed.
+*   **Supports `proc`:** This method fully supports multi-line commands, making it ideal for well-structured code with procedures.
+
+**Example `prod_script.tcl`:**
+```tcl
+# This script only returns the final value
+proc do_work {} {
+    dg_create my_prod_group
+    dl_set my_prod_group:data [dl_flist 1.1 2.2]
+    # ... more logic ...
+    return [dl_length my_prod_group:data]
+}
+do_work
+```
+
+**Example Execution:**
+```bash
+$ TCL_SCRIPT=$(cat prod_script.tcl); essctrl -c "$TCL_SCRIPT"
+2
+``` 
