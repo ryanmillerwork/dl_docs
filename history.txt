@@ -1,1 +1,1 @@
-dg_tclListnames
+dg_delete ALL; dg_create source_g; dg_toString64 source_g b64_data; dg_create dest_g; dg_fromString64 $b64_data dest_g

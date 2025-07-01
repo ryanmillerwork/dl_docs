@@ -15,7 +15,7 @@ Returns
 
 Errors
     • TCL_ERROR if the `dyngroup` or `list_name` cannot be found.
-    • TCL_ERROR if `new_name` is provided and already exists in the `dyngroup`.
+    • TCL_ERROR: `dg_addNewList: dynlist "<new_name>" already exists in dyngroup "<dyngroup>"` if `new_name` is provided and already exists in the `dyngroup`.
 
 Usage Note
     This command is difficult to use interactively via `essctrl` because of challenges in passing dynamically generated list names. The more common pattern is to create lists directly inside a group (e.g., `dl_set myGroup:myList [dl_ilist]`).
@@ -47,7 +47,7 @@ Brief
 Inputs
     • dyngroup …… The name of the destination DynGroup.
     • name ………… The name for the new list within the group.
-    • datatype …… Optional. A string for the list's data type (e.g., `long`, `float`). Defaults to float if not provided.
+    • datatype …… Optional. A string for the list's data type (e.g., `long`, `float`). Defaults to `long` if not provided.
     • size ………… Optional. An integer specifying the initial memory allocation capacity. This does NOT populate the list; the list is always created empty.
 
 Returns
@@ -56,13 +56,13 @@ Returns
 Errors
     • TCL_ERROR if the `dyngroup` is not found.
     • TCL_ERROR if a list with the same `name` already exists in the group.
-    • TCL_ERROR if the `datatype` is invalid.
+    • TCL_ERROR: `dg_addNewList: bad datatype` if the `datatype` is invalid.
 
 Example
     # Create a group
     dg_create myGroup
 
-    # Add a new list with default type (float)
+    # Add a new list with default type (long)
     dg_addNewList myGroup listOne
 
     # Add a new integer list with an initial capacity of 10
@@ -73,6 +73,10 @@ Example
     # → listOne listTwo
 
     # Verify the type and that the list is empty despite the 'size' argument
+    dl_datatype myGroup:listOne
+    # → long
+    dl_length myGroup:listOne
+    # → 0
     dl_datatype myGroup:listTwo
     # → long
     dl_length myGroup:listTwo
@@ -191,7 +195,7 @@ Returns
     • The name of the newly created DynGroup.
 
 Errors
-    • TCL_ERROR: `group <groupname> already exists` if the specified `groupname` is already in use.
+    • TCL_ERROR: `tclPutGroup: group <groupname> already exists` if the specified `groupname` is already in use.
 
 Example
     # Create a named group
@@ -227,7 +231,7 @@ Side Effects
     • The specified DynGroups and all the lists they contain are deallocated and their names are removed.
 
 Errors
-    • TCL_ERROR: `dyngroup "<name>" not found` if a specified group name does not exist. This error is NOT thrown when using the `ALL` keyword, which will complete silently even if no groups exist.
+    • TCL_ERROR: `dg_delete: dyngroup "<name>" not found` if a specified group name does not exist. This error is NOT thrown when using the `ALL` keyword, which will complete silently even if no groups exist.
 
 Example
     # Setup
@@ -294,6 +298,9 @@ Inputs
     • dyngroup …… The name of the DynGroup to dump.
     • fileID ………… Optional. The name of an open Tcl channel to write to. If not provided, output is sent to `stdout`.
     • separator …… Optional. The ASCII integer value of the character to use as a separator between columns. Defaults to `9` (Tab). This argument can only be used if `fileID` is also provided.
+
+Usage Note
+    When a `separator` is used, string values in the output will be automatically enclosed in double quotes.
 
 Returns
     • This command does not return a value.
@@ -366,11 +373,10 @@ Returns
     • The `new_group_name` on success.
 
 Errors
-    • TCL_ERROR if `new_group_name` already exists.
-    • TCL_ERROR: `file not recognized as dg format` if the data in the source variable is malformed. This can occur if the variable name is passed incorrectly from the shell.
+    • TCL_ERROR if the data in the source variable is not valid Base64 or is a malformed group string.
 
 Usage Note
-    This command is part of a serialization pair with `dg_toString`. Using this pair from the `essctrl` command line is challenging due to difficulties in passing the serialized variable correctly. These commands are more reliably used within Tcl scripts.
+    This command overwrites any existing DynGroup that has the same `new_group_name`. It is part of a serialization pair with `dg_toString`. While care must be taken to manage variables within a single `essctrl` call, a round-trip operation is straightforward. See the example in `dg_toString`.
 
 See also
     dg_toString, dg_fromString64, dg_create
@@ -511,7 +517,9 @@ Returns
 Errors
     • TCL_ERROR if the `file` cannot be found or read.
     • TCL_ERROR if the file is not a valid DynGroup format.
-    • TCL_ERROR if `new_group_name` is provided and already exists.
+
+Usage Note
+    If `new_group_name` is provided and a group with that name already exists, this command will overwrite the existing group without warning.
 
 See also
     dg_write, dg_create, dg_fromString
@@ -535,8 +543,11 @@ Returns
     • This command does not return a value.
 
 Errors
-    • TCL_ERROR if the `dyngroup` is not found.
+    • TCL_ERROR: `dyngroup "<dyngroup>" not found` if the `dyngroup` is not found.
     • TCL_ERROR if the `filename` cannot be written to.
+
+Usage Note
+    When providing a `filename`, it is strongly recommended to use an absolute path (e.g., `/tmp/my_group.dg`) to ensure the file is created in a predictable location, as the command's working directory may not be what you expect.
 
 Example
     # Create a group
@@ -544,15 +555,15 @@ Example
     dg_addNewList my_group data
     dl_append my_group:data 1 2 3
 
-    # Write to a GZip compressed file (the default)
-    dg_write my_group
+    # Write to a GZip compressed file using an absolute path
+    dg_write my_group /tmp/my_group.dgz
 
     # Write to an uncompressed file
-    dg_write my_group my_group.dg
+    dg_write my_group /tmp/my_group.dg
 
     # Read it back in
     dg_delete my_group
-    dg_read my_group.dg
+    dg_read /tmp/my_group.dg
     dl_tcllist my_group:data
     # → 1 2 3
 
@@ -575,7 +586,7 @@ Returns
 
 Errors
     • TCL_ERROR if the `dyngroup` is not found.
-    • TCL_ERROR if the `list_name` is not found within the group.
+    • TCL_ERROR: `dg_remove: list "<list_name>" not found in group "<dyngroup>"` if the `list_name` is not found within the group.
 
 Example
     # Setup a group with two lists
@@ -611,7 +622,7 @@ Returns
 
 Errors
     • TCL_ERROR if `old_name` (group or list) is not found.
-    • TCL_ERROR if attempting to rename a list to a `new_name` that already exists in the group.
+    • TCL_ERROR: `dg_rename: list "<group_name>:<new_name>" already exists` if attempting to rename a list to a `new_name` that already exists in the group.
 
 Example
     # --- Group Rename ---
@@ -651,7 +662,7 @@ Returns
     • The name of the last DynGroup processed.
 
 Errors
-    • TCL_ERROR if any specified `dyngroup_name` is not found.
+    • TCL_ERROR: `dyngroup "<dyngroup_name>" not found` if any specified `dyngroup_name` is not found.
 
 Example
     # Setup a group with a list containing data
@@ -727,11 +738,10 @@ Returns
     • The `new_group_name` on success.
 
 Errors
-    • TCL_ERROR if `new_group_name` already exists.
     • TCL_ERROR if the data in the source variable is not valid Base64 or is a malformed group string.
 
 Usage Note
-    This command is part of a serialization pair with `dg_toString64`. While care must be taken to manage variables within a single `essctrl` call, a round-trip operation is straightforward. See the example in `dg_toString64`.
+    This command overwrites any existing DynGroup that has the same `new_group_name`. It is part of a serialization pair with `dg_toString64`. All operations must be performed in a single `essctrl` call for the Tcl variables to be passed correctly.
 
 See also
     dg_toString64, dg_fromString, dg_create
