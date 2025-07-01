@@ -2,6 +2,17 @@
 
 This document outlines best practices and common pitfalls when running `dl_library` TCL functions from the shell using the `essctrl` utility.
 
+## Table of Contents
+
+- [Recommended Workflow: Using a Function Library](#recommended-workflow-using-a-function-library)
+- [Executing Commands](#executing-commands)
+- [Working with Lists](#working-with-lists)
+- [Viewing Output](#viewing-output)
+- [The Shell Quoting Trap](#the-shell-quoting-trap)
+- [Discovering Command Usage](#discovering-command-usage)
+- [Known Limitations](#known-limitations)
+- [Alternative Script Execution Methods](#alternative-script-execution-methods)
+
 ## Recommended Workflow: Using a Function Library
 
 The Tcl server that `essctrl` communicates with is **stateful**. This means you can define procedures in one command and call them in subsequent commands. This is the most powerful and maintainable way to work with `essctrl` for any non-trivial logic.
@@ -72,7 +83,9 @@ All commands are executed via the `essctrl` command-line tool with the `-c` flag
 essctrl -c "tcl_command_goes_here"
 ```
 
-## Viewing List Contents
+## Working with Lists
+
+### Viewing `dl_library` List Contents
 
 The `dl_` functions often return dynamic list objects. To view the contents of these lists in a human-readable format, you must wrap the command with `dl_tcllist`.
 
@@ -81,14 +94,55 @@ The `dl_` functions often return dynamic list objects. To view the contents of t
 essctrl -c "dl_tcllist [dl_abs [dl_flist -1.1 1.2]]"
 ```
 
-## Creating Lists
+### Creating Lists
 
 While a generic `dl_create` command exists, it's often better to use type-specific list creation functions to avoid "bad datatype" errors:
 
 *   `dl_ilist` for integer lists (e.g., `dl_ilist 1 2 3`)
 *   `dl_flist` for float lists (e.g., `dl_flist 1.0 2.0 3.0`)
 
-## Working with Variables (The Shell Quoting Trap)
+## Viewing Output
+
+A critical concept for testing is that both `essctrl` and the direct `netcat` interface return the value of the *last evaluated expression*. To see a value, ensure the command that produces it is the final command in your script.
+
+### Viewing `dl_library` Lists
+Use `dl_tcllist` as the final command to see the contents of a `dl_library` list.
+
+```bash
+essctrl -c 'set res [dl_cumsum [dl_flist 1 2 3]]; dl_tcllist $res'
+# → 1.0 3.0 6.0
+```
+
+### Viewing Simple Tcl Variables
+The `dl_tcllist` command is only for `dl_library` objects. To view standard Tcl variables (strings, numbers, or Tcl lists), the Tcl `return` command must be the last instruction.
+
+*   **To view a single variable:** Use `return $varName`.
+    ```bash
+    essctrl -c 'set a 42; return $a'
+    # → 42
+    ```
+*   **To view multiple variables:** Combine them into a Tcl list and `return` it.
+    ```bash
+    essctrl -c 'set v1 "hello"; set v2 99; return [list "Value 1:" $v1 "Value 2:" $v2]'
+    # → {Value 1:} hello {Value 2:} 99
+    ```
+*   **To create a log of messages:** For debugging, you can build a list of messages throughout your script using `lappend`. This creates a sequential log of what happened.
+    ```tcl
+    # Tcl code to build a log
+    set log [list]
+    lappend log "Starting process..."
+    set items_processed 42
+    lappend log "Items processed: $items_processed"
+    lappend log "Process complete."
+    return $log
+    ```
+    Executing this with `essctrl` would look like:
+    ```bash
+    essctrl -c 'set log [list]; lappend log "Starting..."; set i 42; lappend log "Items: $i"; lappend log "Done."; return $log'
+    # → {Starting...} {Items: 42} Done.
+    ```
+
+## The Shell Quoting Trap (Working with Variables)
 
 A common issue arises from the interaction between the `bash` shell and the TCL interpreter, as both use `$` for variable expansion.
 
@@ -147,89 +201,30 @@ A useful diagnostic technique for understanding how a `dl_library` function work
     # Output: %list...% 
     ```
 
-=== How to See Return Values ===
+## Known Limitations
 
-A critical concept for testing is that both `essctrl` and the direct `netcat`
-interface return the value of the *last evaluated expression*.
+### Do NOT use `puts` or File I/O (`open`)
 
-The common Tcl command `puts` **should not be used**, as it will not print
-to the standard output in either interface and will result in seeing no
-output.
-
-**Correct Method:**
-
-To see the result of a command, ensure it is the last command in your script.
-
-```bash
-# Get a datatype with essctrl
-essctrl -c 'set mylist [dl_ilist 1]; dl_datatype $mylist'
-# → long
-
-# Get a datatype with netcat
-echo 'set mylist [dl_ilist 1]; dl_datatype $mylist' | nc -N 127.0.0.1 2570
-# → long
-```
-
-To see the contents of a list, the last command should be `dl_tcllist`.
-
-```bash
-essctrl -c 'set res [dl_cumsum [dl_flist 1 2 3]]; dl_tcllist $res'
-# → 1.0 3.0 6.0
-```
-
-### Known Limitations & Unstable Features
-
-#### Do NOT use `puts` or File I/O (`open`)
-
-The `essctrl` Tcl environment is highly unstable when `puts` or file I/O commands (like `open`, `close`, `read`) are used. In our testing, using these commands often leads to `too many nested evaluations (infinite loop?)` errors, even in simple scripts.
+The `essctrl` Tcl environment is highly unstable when the Tcl commands `puts` or file I/O functions (like `open`, `close`, `read`) are used. In our testing, using these commands often leads to `too many nested evaluations (infinite loop?)` errors and prevents any output from being returned.
 
 **The only reliable way to view data is to return it as the final expression of your script.**
 
-- To view `dl_library` lists, use `dl_tcllist`.
-- To view simple Tcl variables, use `return`.
+- **Incorrect:** Using `puts` will produce **NO** output.
+  ```bash
+  # This will produce NO output
+  essctrl -c 'set mylist [dl_ilist 1]; puts [dl_datatype $mylist]'
+  ```
 
-### Inspecting Simple Tcl Variables
+- **Correct:** To view a `dl_library` list, use `dl_tcllist`.
+- **Correct:** To view a simple Tcl variable, use `return`.
 
-The `dl_tcllist` command is for `dl_library` list objects. To view standard Tcl variables, the Tcl `return` command must be the last instruction in your script. The `puts` command will not work.
-
-*   **To view a single variable:** Use `return $varName`.
-    ```bash
-    essctrl -c 'set a 42; return $a'
-    # → 42
-    ```
-*   **To view multiple variables:** Combine them into a Tcl list and `return` the list.
-    ```bash
-    essctrl -c 'set v1 "hello"; set v2 99; return [list "Value 1:" $v1 "Value 2:" $v2]'
-    # → {Value 1:} hello {Value 2:} 99
-    ```
-*   **To create a log of messages:** For debugging, you can build a list of messages throughout your script using `lappend`. This creates a sequential log of what happened.
-    ```tcl
-    # Tcl code to build a log
-    set log [list]
-    lappend log "Starting process..."
-    set items_processed 42
-    lappend log "Items processed: $items_processed"
-    lappend log "Process complete."
-    return $log
-    ```
-    Executing this with `essctrl` would look like:
-    ```bash
-    essctrl -c 'set log [list]; lappend log "Starting..."; set i 42; lappend log "Items: $i"; lappend log "Done."; return $log'
-    # → {Starting...} {Items: 42} Done.
-    ```
-
-**Incorrect Method:**
-
-Using `puts` will prevent you from seeing the result.
-
+A quick example using `netcat`:
 ```bash
-# This will produce NO output
-essctrl -c 'set mylist [dl_ilist 1]; puts [dl_datatype $mylist]'
+# Get a datatype with netcat by making it the last expression
+echo 'set mylist [dl_ilist 1]; dl_datatype $mylist' | nc -N 127.0.0.1 2570
+# → long
 ```
-
-While both methods work, `netcat` can be simpler for scripts containing
-shell-sensitive characters like `!`, as it avoids complex quoting. For most
-cases, `essctrl -c '...'` is sufficient. 
+While both `essctrl` and `netcat` work, `netcat` can be simpler for scripts containing shell-sensitive characters like `!`, as it avoids complex quoting. For most cases, `essctrl -c '...'` is sufficient.
 
 ## Alternative Script Execution Methods
 
