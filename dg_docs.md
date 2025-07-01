@@ -951,3 +951,86 @@ Example
 
 See also
     dg_listnames, dg_dir, dg_dumpListNames
+
+=== dg_select (Manipulation) ===
+Synopsis
+    dg_select dyngroup selection_mask_list
+
+Brief
+    Filters a DynGroup **in-place** using a boolean mask. For each list within the group whose length matches the mask's length, this command filters its elements, keeping only those where the corresponding mask value is `1`.
+
+Inputs
+    • dyngroup ……………… The name of the DynGroup to modify.
+    • selection_mask_list … A numeric DynList of 0s and 1s.
+
+Side Effects
+    • The `dyngroup` is modified in-place.
+    • Only lists whose length exactly matches the length of the `selection_mask_list` are affected. Other lists are ignored.
+
+Returns
+    • The name of the modified `dyngroup`.
+
+Errors
+    • TCL_ERROR if the `dyngroup` or `selection_mask_list` is not found.
+
+Example
+    # Create a group with lists of different lengths
+    dg_create my_group
+    dl_set my_group:four_items [dl_ilist 10 20 30 40]
+    dl_set my_group:five_items [dl_slist a b c d e]
+    dl_set my_group:also_four [dl_flist 1.1 2.2 3.3 4.4]
+
+    # Create a mask of length 4
+    set mask [dl_ilist 1 0 1 0]
+
+    # Perform the in-place selection
+    dg_select my_group $mask
+
+    # Check the results: only the lists with length 4 were filtered
+    # dl_tcllist my_group:four_items → 10 30
+    # dl_tcllist my_group:also_four → 1.1 3.3
+    # dl_tcllist my_group:five_items → a b c d e (unchanged)
+
+See also
+    dg_choose, dl_select
+
+=== dg_choose (Creation) ===
+Synopsis
+    dg_choose source_group index_list [ref_list_name]
+
+Brief
+    Creates a new DynGroup by choosing rows from a `source_group` using a list of 0-based indices. This command is useful for creating a new group that is a subset or re-ordered version of another.
+
+Inputs
+    • source_group …… The name of the group to read from.
+    • index_list ………… A DynList of integer indices to select. Repeated indices are allowed.
+    • ref_list_name …… WARNING: This optional argument appears to be non-functional in testing and is ignored.
+
+Returns
+    • The name of a **new, temporary DynGroup** containing the selected rows. This group typically needs to be renamed with `dg_rename`.
+
+Errors
+    • TCL_ERROR if `source_group` or `index_list` cannot be found.
+    • TCL_ERROR if `index_list` contains an out-of-bounds index.
+
+Example
+    # Create a source group
+    dg_create source
+    dl_set source:names [dl_slist alice bob carol dave]
+    dl_set source:scores [dl_ilist 100 95 80 98]
+
+    # Create a list of indices to choose
+    set indices [dl_ilist 3 0 0 1]
+
+    # Create a new group by choosing rows
+    set temp_g [dg_choose source $indices]
+
+    # Rename the new group
+    dg_rename $temp_g chosen_subset
+
+    # Check the results
+    # dl_tcllist chosen_subset:names  → dave alice alice bob
+    # dl_tcllist chosen_subset:scores → 98 100 100 95
+
+See also
+    dg_select, dl_choose
