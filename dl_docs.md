@@ -3126,10 +3126,7 @@ Synopsis
     dl_local <new_list_name> <source_list_to_copy>
 
 Brief
-    Creates a new dynamic list that is local to the current Tcl procedure
-    (`proc`) scope. It creates the new list by copying an existing source
-    list. This command is essential for creating temporary, modifiable
-    lists inside `proc`s without affecting global lists.
+    Creates a new dynamic list that is local to the current Tcl procedure (`proc`) scope. This command is **strongly recommended** for managing temporary lists inside `proc`s to prevent memory leaks. By automatically handling cleanup, it avoids the need for manual `dl_delete` calls.
 
 Inputs
     • new_list_name ………… The string name for the new local list.
@@ -3142,13 +3139,39 @@ Returns
       side effect.
 
 Side Effects
-    • A new DynList with the given name is created in the local scope.
+    • A new DynList with the given name is created in the local scope. This list will be automatically destroyed when the `proc` exits.
 
-Usage Notes
-    • This command is intended for use inside a Tcl `proc`. Lists created
-      with `dl_local` are generally not accessible from the global scope
-      after the `proc` finishes.
-    • To return a list from a `proc`, use `dl_return`.
+### Usage Notes & Best Practices
+
+**Prefer `dl_local` over `set` inside a `proc`**
+
+Inside a Tcl procedure, `dl_local` should be your default choice for creating or capturing intermediate lists. It provides automatic memory management, which is safer and less error-prone than manual cleanup.
+
+*   **`dl_local` (Safe & Recommended):** The list is automatically destroyed when the `proc` exits. This prevents memory leaks and reduces code clutter. While this involves a minor performance cost (a list copy), it is negligible in most cases and is a worthwhile trade-off for safer code.
+    ```tcl
+    proc get_filtered_group { source_g } {
+        # dl_local creates a safe, auto-cleaned list of indices.
+        dl_local even_indices [dl_eqIndex [dl_mod "$source_g:ints" 2] 0]
+        set result [dg_choose $source_g even_indices]
+        return $result
+        # 'even_indices' is cleaned up automatically on return.
+    }
+    ```
+
+*   **`set` + `dl_delete` (Manual & Error-Prone):** Using `set` only captures the name of a temporary list. The list itself is not scoped to the procedure and will persist in memory unless you explicitly call `dl_delete`. Forgetting the `dl_delete` call is a common source of session memory leaks.
+    ```tcl
+    proc get_filtered_group_manual { source_g } {
+        set even_indices [dl_eqIndex [dl_mod "$source_g:ints" 2] 0]
+        set result [dg_choose $source_g even_indices]
+        # This extra line is required to prevent a memory leak.
+        dl_delete $even_indices
+        return $result
+    }
+    ```
+
+**Other Notes**
+*   This command is intended for use inside a Tcl `proc`.
+*   To return a list from a `proc`, use `dl_return`.
 
 Example
     # This proc finds the indices of given IDs within a shape list.
